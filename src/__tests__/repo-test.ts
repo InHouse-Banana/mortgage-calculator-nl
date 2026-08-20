@@ -136,3 +136,45 @@ describe('search console verification', () => {
     expect(html).toContain('UsJ_9hhpaeUCjmBOmOeh5t4_oO4l-0luk33wV5XqAw0');
   });
 });
+
+describe('link previews', () => {
+  const SITE = 'https://mortgage-calculator-nl.vercel.app';
+  const html = read('index.html');
+
+  it('declares an og:image, or chat apps show text only', () => {
+    expect(html).toContain(`content="${SITE}/og-image.png"`);
+    expect(html).toMatch(/property="og:image"/);
+    // WhatsApp and friends need absolute URLs — a relative path renders nothing.
+    expect(html).not.toMatch(/property="og:image"[^>]*content="\/[^/]/);
+  });
+
+  it('declares the image dimensions, so the card renders before the fetch', () => {
+    expect(html).toContain('<meta property="og:image:width" content="1200" />');
+    expect(html).toContain('<meta property="og:image:height" content="630" />');
+    expect(html).toMatch(/property="og:image:alt"/);
+  });
+
+  it('asks for the large card rather than the thumbnail', () => {
+    expect(html).toContain('name="twitter:card" content="summary_large_image"');
+  });
+
+  it('ships an image that is actually there, and small enough for WhatsApp', () => {
+    const file = resolve(process.cwd(), 'public/og-image.png');
+    const bytes = readFileSync(file);
+
+    // PNG magic number.
+    expect(bytes.subarray(0, 8)).toEqual(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    );
+    // WhatsApp silently drops thumbnails much over ~300 kB.
+    expect(bytes.length).toBeLessThan(300 * 1024);
+
+    // Dimensions live in the IHDR chunk, bytes 16-24.
+    expect(bytes.readUInt32BE(16)).toBe(1200);
+    expect(bytes.readUInt32BE(20)).toBe(630);
+  });
+
+  it('keeps the generator alongside the image it produces', () => {
+    expect(read('scripts/generate-og-image.py')).toContain('public/og-image.png');
+  });
+});
