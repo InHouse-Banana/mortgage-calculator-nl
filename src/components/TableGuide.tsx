@@ -50,14 +50,16 @@ export function TableGuide() {
     <Card title="How to read this table" collapsible defaultOpen={false} layout="plain">
       <dl className="space-y-3">
         {COLUMNS.map((column) => (
-          <div key={column.name} className="sm:grid sm:grid-cols-[9rem_1fr] sm:gap-4">
-            <dt className="text-sm font-semibold text-brand-500">
-              {column.name}
-              <span className="mt-0.5 block font-mono text-xs font-normal text-brand-400">
+          <div key={column.name} className="sm:grid sm:grid-cols-[7rem_1fr] sm:gap-4">
+            <dt className="text-sm font-semibold text-brand-500">{column.name}</dt>
+            <dd className="mt-1 sm:mt-0">
+              <span className="block font-mono text-xs text-brand-400">
                 {column.formula}
               </span>
-            </dt>
-            <dd className="mt-1 text-sm text-brand-500 sm:mt-0">{column.text}</dd>
+              <span className="mt-1 block text-sm text-brand-500">
+                {column.text}
+              </span>
+            </dd>
           </div>
         ))}
       </dl>

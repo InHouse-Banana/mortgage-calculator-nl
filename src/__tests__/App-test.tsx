@@ -1192,3 +1192,37 @@ describe('table guide', () => {
     expect(guide).toHaveTextContent(/hypotheekrenteaftrek/i);
   });
 });
+
+it('puts each formula at the head of its explanation, not under the name', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  const toggle = screen.getByRole('button', { name: 'How to read this table' });
+  await user.click(toggle);
+  const guide = document.getElementById(toggle.getAttribute('aria-controls')!)!;
+
+  const term = within(guide).getByText('Interest');
+  expect(term.tagName).toBe('DT');
+  // The name column holds the name and nothing else.
+  expect(term.textContent).toBe('Interest');
+
+  const description = term.nextElementSibling!;
+  expect(description.tagName).toBe('DD');
+  // Formula first, prose after.
+  const lines = description.querySelectorAll('span');
+  expect(lines[0].textContent).toBe('Balance × (rate ÷ 12)');
+  expect(lines[1].textContent).toMatch(/lender’s charge for that month/);
+});
+
+describe('graph presentation', () => {
+  it('renders the graph tab', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Graph' }));
+
+    expect(screen.getByRole('tab', { name: 'Graph' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+});

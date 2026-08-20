@@ -52,14 +52,14 @@ export function Graph(props: GraphProps) {
           <CartesianGrid strokeDasharray="3 3" />
 
           {/* Annuity: solid lines */}
-          <Line type="monotone" dataKey="annuityGross" name="Gross (A)" stroke={stroke1} dot={false} />
-          <Line type="monotone" dataKey="annuityCapital" name="Capital (A)" stroke={stroke2} dot={false} />
-          <Line type="monotone" dataKey="annuityInterest" name="Interest (A)" stroke={stroke3} dot={false} />
+          <Line type="monotone" dataKey="annuityGross" name="Gross (A)" stroke={stroke1} dot={false} strokeWidth={2} />
+          <Line type="monotone" dataKey="annuityCapital" name="Capital (A)" stroke={stroke2} dot={false} strokeWidth={2} />
+          <Line type="monotone" dataKey="annuityInterest" name="Interest (A)" stroke={stroke3} dot={false} strokeWidth={2} />
 
           {/* Linear: dashed lines, same color per metric so A/L pairs are still comparable */}
-          <Line type="monotone" dataKey="linearGross" name="Gross (L)" stroke={stroke1} strokeDasharray="6 4" dot={false} />
-          <Line type="monotone" dataKey="linearCapital" name="Capital (L)" stroke={stroke2} strokeDasharray="6 4" dot={false} />
-          <Line type="monotone" dataKey="linearInterest" name="Interest (L)" stroke={stroke3} strokeDasharray="6 4" dot={false} />
+          <Line type="monotone" dataKey="linearGross" name="Gross (L)" stroke={stroke1} strokeDasharray="6 4" dot={false} strokeWidth={2} />
+          <Line type="monotone" dataKey="linearCapital" name="Capital (L)" stroke={stroke2} strokeDasharray="6 4" dot={false} strokeWidth={2} />
+          <Line type="monotone" dataKey="linearInterest" name="Interest (L)" stroke={stroke3} strokeDasharray="6 4" dot={false} strokeWidth={2} />
         </LineChart>
       </ResponsiveContainer>
     </div>

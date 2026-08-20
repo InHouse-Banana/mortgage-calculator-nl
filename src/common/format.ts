@@ -2,9 +2,9 @@
 // totals in Formulas.tsx keep full precision, because rounding intermediate
 // values would accumulate error across hundreds of months.
 
-/** Whole euros; cents are noise on figures this size. */
+/** Whole euros, symbol leading — as the input fields and summary cards show it. */
 export function formatEuro(value: number): string {
-  return `${Math.round(value).toLocaleString('en-GB')}€`;
+  return `€${Math.round(value).toLocaleString('en-GB')}`;
 }
 
 /** Whole euros with the currency symbol in front, for prose. */

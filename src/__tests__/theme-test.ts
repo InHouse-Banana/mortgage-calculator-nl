@@ -154,3 +154,32 @@ describe('chart series colours', () => {
     expect(hueGap(g, i)).toBeGreaterThan(60);
   });
 });
+
+describe('chart rendering', () => {
+  // Recharts draws nothing under jsdom — ResponsiveContainer measures 0x0, so
+  // there is no SVG to query. Assert on the source, as this file already does
+  // for CSS: weaker than a rendered check, but it still catches a series added
+  // without a stroke width, or the width being dropped.
+  const source = readFileSync(
+    resolve(process.cwd(), 'src/components/Graph.tsx'),
+    'utf8',
+  );
+
+  it('gives every series a stroke wider than the 1px default', () => {
+    const lines = source.match(/<Line\b/g) ?? [];
+    const widths = source.match(/strokeWidth=\{(\d+)\}/g) ?? [];
+
+    expect(lines.length).toBe(6); // 3 metrics x annuity/linear
+    expect(widths.length).toBe(lines.length);
+    widths.forEach((w) =>
+      expect(Number(w.match(/\d+/)![0])).toBeGreaterThanOrEqual(2),
+    );
+  });
+
+  it('formats the axis and tooltip through the shared euro formatter', () => {
+    expect(source).toContain('tickFormatter={formatEuro}');
+    expect(source).toContain('formatEuro(Number(value))');
+    // No hard-coded unit that would double up with the formatter's symbol.
+    expect(source).not.toMatch(/unit="€"/);
+  });
+});
