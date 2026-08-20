@@ -79,7 +79,7 @@ export function Card({
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-controls={bodyId}
-            className="-m-1 flex items-center gap-1.5 rounded p-1 text-left uppercase transition-colors hover:text-brand-600 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+            className="-m-1 flex items-center gap-1.5 rounded p-1 text-left uppercase transition-colors outline-none hover:text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-300"
           >
             <Chevron open={open} />
             {title}

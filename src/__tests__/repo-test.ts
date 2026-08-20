@@ -127,3 +127,12 @@ describe('search-engine plumbing', () => {
       .forEach((file) => expect(file).toContain(SITE));
   });
 });
+
+describe('search console verification', () => {
+  it('carries the Google site-verification token', () => {
+    const html = read('index.html');
+
+    expect(html).toMatch(/name="google-site-verification"/);
+    expect(html).toContain('UsJ_9hhpaeUCjmBOmOeh5t4_oO4l-0luk33wV5XqAw0');
+  });
+});

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
 
@@ -98,7 +98,7 @@ it('clamps an out-of-range term instead of breaking the schedule', async () => {
 describe('yearly extra repayments', () => {
   async function goToOverpayment() {
     const user = userEvent.setup();
-    await user.click(screen.getByRole('tab', { name: 'Overpayment' }));
+    await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
   }
 
   async function setField(label: string | RegExp, value: string) {
@@ -233,7 +233,7 @@ describe('yearly extra repayments', () => {
     render(<App />);
 
     await setTerm('25');
-    await user.click(screen.getByRole('tab', { name: 'Overpayment' }));
+    await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
     await setField('Extra amount per year', '6000');
 
     expect(screen.getAllByLabelText(/^Payoff month/)[0]).toHaveAccessibleName(
@@ -344,7 +344,7 @@ describe('purchase costs', () => {
   it('round-trips the lump sum through the URL', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole('tab', { name: 'Overpayment' }));
+    await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
 
     const amount = screen.getByLabelText('One-off lump sum amount');
     await user.clear(amount);
@@ -843,5 +843,127 @@ describe('links and the effective rate', () => {
       );
       expect(effective).toBeGreaterThanOrEqual(Number(rate) - 0.005);
     }
+  });
+});
+
+describe('focus indication', () => {
+  it('shows the ring only for keyboard users, not on mouse clicks', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const toggle = screen.getByRole('button', { name: 'Purchase summary' });
+
+    // A plain `focus:` ring boxes the title on every click. `focus-visible:`
+    // leaves mouse clicks clean while keeping keyboard navigation traceable —
+    // so the ring must be there, but gated.
+    expect(toggle.className).toMatch(/focus-visible:ring/);
+    expect(toggle.className).not.toMatch(/(?<!-visible):focus:ring|\bfocus:ring/);
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('keeps every collapsible card keyboard operable', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const toggle = screen.getByRole('button', { name: 'Annuity vs. Linear' });
+    toggle.focus();
+    expect(toggle).toHaveFocus();
+
+    await user.keyboard('{Enter}');
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  });
+});
+
+describe('info tooltips', () => {
+  const icon = () => screen.getAllByRole('button', { name: 'i' })[0];
+
+  it('opens on hover and closes when the pointer leaves', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.queryByRole('tooltip')).toBeNull();
+
+    await user.hover(icon());
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+    await user.unhover(icon());
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  // The pointer must be able to travel onto the text to read or select it.
+  // That is guaranteed structurally: the tooltip renders *inside* the element
+  // carrying the mouse handlers, so a real browser fires no mouseleave when
+  // moving between the two. Asserted on the structure rather than by
+  // simulating the move, because jsdom/userEvent do not model relatedTarget
+  // and would report a leave that a browser never emits.
+  it('renders the tooltip inside the hover target, so it is reachable', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const button = icon();
+    await user.hover(button);
+
+    const tip = screen.getByRole('tooltip');
+    const hoverTarget = button.parentElement!;
+
+    expect(hoverTarget).toContainElement(tip);
+    expect(hoverTarget).toContainElement(button);
+  });
+
+  // A tap must pin the tooltip open on its own. Focus alone is not enough to
+  // rely on: mobile browsers are inconsistent about focusing a tapped button,
+  // and any tap elsewhere blurs it. Focus and hover are removed here so only
+  // the pin can be holding it open.
+  it('pins open on tap, independently of hover and focus', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const button = icon();
+    await user.click(button);
+    act(() => button.blur());
+    await user.unhover(button);
+
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+
+    // Tapping again puts it away.
+    await user.click(button);
+    act(() => button.blur());
+    await user.unhover(button);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  // act() because a bare .focus() moves focus but never flushes React's
+  // re-render, so the assertion would read a stale DOM.
+  it('opens on keyboard focus, since keyboard users cannot hover', () => {
+    render(<App />);
+    const button = icon();
+
+    act(() => button.focus());
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+    act(() => button.blur());
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('still opens on tap, since touch devices have no hover', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(icon());
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+  });
+
+  it('is dismissible with Escape', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(icon());
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('tooltip')).toBeNull();
   });
 });

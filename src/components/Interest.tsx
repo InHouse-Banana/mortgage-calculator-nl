@@ -82,7 +82,7 @@ function RateCell(props: { value: string; onSelect?: (rate: number) => void }) {
         type="button"
         onClick={() => props.onSelect?.(parseFloat(props.value))}
         title="Use this rate"
-        className="rounded px-1.5 py-0.5 transition-colors hover:bg-brand-100 hover:text-brand-600 focus:ring-2 focus:ring-brand-200 focus:outline-none"
+        className="rounded px-1.5 py-0.5 transition-colors hover:bg-brand-100 hover:text-brand-600 outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
       >
         {formatted}
       </button>

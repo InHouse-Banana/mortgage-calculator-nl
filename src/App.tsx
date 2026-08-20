@@ -413,7 +413,7 @@ const App = () => {
             { value: 'mortgage', label: 'Mortgage' },
             { value: 'cost', label: 'Purchase Costs' },
             { value: 'interest', label: 'Interest' },
-            { value: 'overpayment', label: 'Overpayment' },
+            { value: 'overpayment', label: 'Extra Repayments' },
           ]}
         />
         <div className="mt-4">
