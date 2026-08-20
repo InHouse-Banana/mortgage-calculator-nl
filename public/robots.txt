@@ -1,2 +1,5 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
+Allow: /
+
+Sitemap: https://mortgage-calculator-nl.vercel.app/sitemap.xml

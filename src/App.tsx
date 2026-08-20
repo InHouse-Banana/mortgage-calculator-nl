@@ -389,7 +389,7 @@ const App = () => {
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
       <header className="mb-6 flex flex-col gap-4 rounded-lg bg-accent px-6 py-8 text-white shadow-sm sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Mortgage Calculator</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Mortgage Calculator v2</h1>
           <p className="mt-1 text-white">
             Annuity and Linear mortgage calculator for the Netherlands
           </p>

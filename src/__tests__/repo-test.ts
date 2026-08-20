@@ -89,3 +89,41 @@ describe('repository is safe to publish', () => {
     });
   });
 });
+
+describe('search-engine plumbing', () => {
+  const SITE = 'https://mortgage-calculator-nl.vercel.app';
+
+  it('declares a canonical URL', () => {
+    const html = read('index.html');
+
+    // Every input change rewrites the query string, so without a canonical
+    // Google would index unlimited ?price=... permutations as separate pages.
+    expect(html).toContain(`<link rel="canonical" href="${SITE}/" />`);
+  });
+
+  it('serves a robots.txt that actually allows crawling', () => {
+    const robots = read('public/robots.txt');
+
+    // `User-agent: *` on its own is not a directive.
+    expect(robots).toMatch(/^User-agent: \*$/m);
+    expect(robots).toMatch(/^Allow: \/$/m);
+    expect(robots).not.toMatch(/^Disallow: \/$/m);
+    expect(robots).toContain(`Sitemap: ${SITE}/sitemap.xml`);
+  });
+
+  it('serves a sitemap pointing at the live site', () => {
+    const sitemap = read('public/sitemap.xml');
+
+    expect(sitemap).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+    expect(sitemap).toContain(`<loc>${SITE}/</loc>`);
+  });
+
+  it('never ships a noindex directive', () => {
+    expect(read('index.html')).not.toMatch(/name="robots"[^>]*noindex/i);
+  });
+
+  it('keeps the sitemap, canonical and README pointing at the same origin', () => {
+    [read('index.html'), read('public/sitemap.xml'), read('public/robots.txt'), read('README.md')]
+      .forEach((file) => expect(file).toContain(SITE));
+  });
+});
