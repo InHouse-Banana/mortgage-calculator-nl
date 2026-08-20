@@ -14,8 +14,7 @@ the first version, which this one is based on. The original is still running at
 
 ## Demo
 
-<!-- TODO: replace with the Vercel URL once the first deployment completes -->
-_Deploying to Vercel — link to follow._
+**[mortgage-calculator-nl.vercel.app](https://mortgage-calculator-nl.vercel.app/)**
 
 ## Features
 
@@ -54,7 +53,9 @@ Vite prints the local URL it picked; it varies if the default port is in use.
 
 ## Deployment
 
-Deployed on **Vercel**, which builds straight from this repository. `vercel.json`
+Deployed on **Vercel** at
+[mortgage-calculator-nl.vercel.app](https://mortgage-calculator-nl.vercel.app/),
+built straight from this repository on every push to `master`. `vercel.json`
 pins the framework, build command and output directory, so importing the repo in
 Vercel needs no further configuration. No environment variables are required —
 everything runs in the browser and nothing is sent to a server.

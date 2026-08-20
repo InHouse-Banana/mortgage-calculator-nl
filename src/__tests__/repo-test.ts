@@ -50,6 +50,13 @@ describe('repository is safe to publish', () => {
     expect(ignored).toMatch(/^\.vercel$/m);
   });
 
+  it('points the README at the live deployment, not a placeholder', () => {
+    const readme = read('README.md');
+
+    expect(readme).toContain('https://mortgage-calculator-nl.vercel.app');
+    expect(readme).not.toMatch(/link to follow|TODO/i);
+  });
+
   it('credits the upstream project in the README', () => {
     const readme = read('README.md');
 
