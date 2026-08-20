@@ -571,3 +571,20 @@ describe('net cost rises over an annuity term (tax deduction shrinking)', () => 
     );
   });
 });
+
+describe('the effective-rate tooltip states true numbers', () => {
+  // The copy teaches with a worked example. If the arithmetic in the prose
+  // ever drifts from the engine, the explanation becomes misinformation.
+  it('matches the 10,000 at 6% example quoted in the tooltip', () => {
+    const owedAfterAYear = 10000 * Math.pow(1 + 0.06 / 12, 12);
+
+    expect(owedAfterAYear).toBeCloseTo(10616.78, 2);
+    expect(Math.round(owedAfterAYear)).toBe(10617);
+    expect(effectiveAnnualRate(6)).toBeCloseTo(6.17, 2);
+  });
+
+  it('agrees that 6% nominal is 0.5% a month', () => {
+    const data = calculateAnnuityData(6, 0, 0, 10000, 12);
+    expect(data.monthly[0].interest).toBeCloseTo(10000 * 0.005, 9);
+  });
+});

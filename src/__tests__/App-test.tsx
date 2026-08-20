@@ -1107,7 +1107,7 @@ describe('label and tooltip legibility', () => {
     const tip = screen.getByRole('tooltip');
     const paragraphs = tip.querySelectorAll('span.block');
 
-    expect(paragraphs.length).toBeGreaterThanOrEqual(3);
+    expect(paragraphs.length).toBeGreaterThanOrEqual(4);
     paragraphs.forEach((p) => expect(p.textContent!.trim().length).toBeGreaterThan(0));
     // No stray blank-line markers left in the rendered output.
     expect(tip.textContent).not.toContain('\n\n');

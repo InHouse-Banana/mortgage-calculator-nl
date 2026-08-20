@@ -27,11 +27,13 @@ Dutch mortgages are normally 30 years, which is also the longest period the inte
 
 A shorter term means higher monthly payments but far less interest overall.`,
 
-  effectiveRate: `What the nominal rate above actually costs over a year, once monthly compounding is counted (effectieve rente).
+  effectiveRate: `The same loan can honestly be quoted as two different percentages. This is the second one.
 
-The instalment is calculated from the nominal rate divided by twelve, which is the convention every lender uses. But a nominal 6% is 0.5% a month, and 0.5% compounded twelve times is 6.17%.
+Your lender advertises 6%, say. Your payment is worked out by simply dividing that by twelve — 0.5% a month — which is how every lender does it.
 
-Dutch lenders must quote both figures. Enter the nominal one above.`,
+But monthly interest builds on itself. Borrow 10,000 at 6% and repay nothing for a year and you owe 10,617, not 10,600, because month two charges interest on month one's interest. So the year really cost 6.17%.
+
+Nothing is being overcharged: your payment still comes from the advertised rate. Keep entering that rate above. This figure exists so you can compare offers, since Dutch lenders may quote either the nominal rate or the effective one.`,
 
   yearlyOverpayment: `A single extra amount repaid once every year, in the month you choose — 12 is December, when a bonus is often available.
 
