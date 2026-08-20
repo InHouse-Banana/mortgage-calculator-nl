@@ -10,9 +10,21 @@ describe('repository is safe to publish', () => {
   it('carries no analytics belonging to the upstream owner', () => {
     const html = read('index.html');
 
+    // The fork's own Vercel Analytics is deliberate and lives in App.tsx as a
+    // component; what must never come back is the previous owner's GA tag,
+    // which would report this deployment's visitors into their property.
     expect(html).not.toContain('UA-165059970-1');
     expect(html).not.toContain('googletagmanager');
-    expect(html).not.toMatch(/gtag|dataLayer|analytics/i);
+    expect(html).not.toMatch(/gtag\(|dataLayer/i);
+  });
+
+  it('uses first-party analytics only', () => {
+    const pkg = JSON.parse(read('package.json'));
+    const deps = Object.keys(pkg.dependencies ?? {});
+
+    expect(deps).toContain('@vercel/analytics');
+    // No third-party trackers alongside it.
+    expect(deps.join(' ')).not.toMatch(/google|segment|mixpanel|hotjar|amplitude/i);
   });
 
   it('carries no third-party infrastructure in the scripts', () => {

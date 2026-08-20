@@ -57,8 +57,17 @@ Deployed on **Vercel** at
 [mortgage-calculator-nl.vercel.app](https://mortgage-calculator-nl.vercel.app/),
 built straight from this repository on every push to `master`. `vercel.json`
 pins the framework, build command and output directory, so importing the repo in
-Vercel needs no further configuration. No environment variables are required —
-everything runs in the browser and nothing is sent to a server.
+Vercel needs no further configuration and no environment variables.
+
+## Privacy
+
+Every calculation runs in your browser. Nothing you type — price, savings, income,
+rent — is ever sent anywhere; the numbers live only in the page and in the URL you
+choose to share.
+
+The site uses [Vercel Web Analytics](https://vercel.com/docs/analytics) for aggregate
+page counts. It is cookieless, stores no personal data and does no cross-site
+tracking. There are no third-party trackers.
 
 ## Tech
 

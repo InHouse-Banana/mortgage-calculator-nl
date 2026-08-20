@@ -21,6 +21,7 @@ import { Interest } from './components/Interest';
 import { Mortgage } from './components/Mortgage';
 import { Overpayment } from './components/Overpayment';
 import { Tabs, TabPanel } from './components/Tabs';
+import { Analytics } from '@vercel/analytics/react';
 import './index.css';
 
 export type ToggleableCost =
@@ -524,6 +525,10 @@ const App = () => {
           Github
         </a>
       </footer>
+
+      {/* Vercel Web Analytics: cookieless page counts, no personal data and no
+          cross-site tracking. Inert outside the Vercel deployment. */}
+      <Analytics />
     </div>
   );
 };
