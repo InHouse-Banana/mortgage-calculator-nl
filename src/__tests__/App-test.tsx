@@ -1274,3 +1274,93 @@ describe('page heading', () => {
     expect(heading.querySelector('em')).toBeNull();
   });
 });
+
+describe('schedule downloads', () => {
+  let created: Array<{ blob: Blob; filename: string }>;
+  let originalCreate: typeof URL.createObjectURL;
+  let originalRevoke: typeof URL.revokeObjectURL;
+
+  beforeEach(() => {
+    created = [];
+    originalCreate = URL.createObjectURL;
+    originalRevoke = URL.revokeObjectURL;
+    // jsdom implements neither.
+    URL.createObjectURL = (blob: Blob) => {
+      created.push({ blob, filename: '' });
+      return 'blob:stub';
+    };
+    URL.revokeObjectURL = () => {};
+
+    // Capture the filename off the anchor the download helper clicks.
+    const click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+      if (created.length) created[created.length - 1].filename = this.download;
+    };
+    return () => {
+      HTMLAnchorElement.prototype.click = click;
+    };
+  });
+
+  afterEach(() => {
+    URL.createObjectURL = originalCreate;
+    URL.revokeObjectURL = originalRevoke;
+  });
+
+  it('offers both formats on the schedule tabs', () => {
+    render(<App />);
+
+    expect(screen.getByRole('button', { name: 'Download CSV' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download Excel' })).toBeInTheDocument();
+  });
+
+  it('names the CSV after the scenario', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, '', '?termYears=27&interest=3.89');
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Download CSV' }));
+
+    expect(created).toHaveLength(1);
+    expect(created[0].filename).toBe('mortgage-schedule-annuity-27y-3-89pct.csv');
+    expect(created[0].blob.type).toContain('text/csv');
+  });
+
+  it('names the workbook after the scenario, and the tab after the schedule', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, '', '?termYears=27&interest=3.89');
+    render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Linear' }));
+
+    await user.click(screen.getByRole('button', { name: 'Download Excel' }));
+
+    expect(created[0].filename).toBe('mortgage-schedule-linear-27y-3-89pct.xlsx');
+    expect(created[0].blob.type).toContain('spreadsheetml.sheet');
+  });
+
+  it('exports the schedule you are looking at', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: 'Download CSV' }));
+    const annuity = await created[0].blob.text();
+
+    await user.click(screen.getByRole('tab', { name: 'Linear' }));
+    await user.click(screen.getByRole('button', { name: 'Download CSV' }));
+    const linear = await created[1].blob.text();
+
+    expect(annuity).not.toBe(linear);
+    // Linear repays a constant amount of capital; annuity does not.
+    const capitalOf = (csv: string, row: number) =>
+      csv.trimEnd().split('\r\n')[row].split(',')[3];
+    expect(capitalOf(linear, 1)).toBe(capitalOf(linear, 2));
+    expect(capitalOf(annuity, 1)).not.toBe(capitalOf(annuity, 2));
+  });
+
+  it('does not offer downloads on the graph tab', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Graph' }));
+
+    expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
+  });
+});

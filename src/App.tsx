@@ -22,6 +22,7 @@ import { Mortgage } from './components/Mortgage';
 import { Overpayment } from './components/Overpayment';
 import { Tabs, TabPanel } from './components/Tabs';
 import { TableGuide } from './components/TableGuide';
+import { exportBasename } from './common/export';
 import { Analytics } from '@vercel/analytics/react';
 import './index.css';
 
@@ -495,10 +496,18 @@ const App = () => {
         />
         <div className="mt-4">
           <TabPanel value="annuity" active={tab}>
-            <DataTable data={annuity.monthly} />
+            <DataTable
+              data={annuity.monthly}
+              name="Annuity"
+              basename={exportBasename('annuity', state.termYears, state.interest)}
+            />
           </TabPanel>
           <TabPanel value="linear" active={tab}>
-            <DataTable data={linear.monthly} />
+            <DataTable
+              data={linear.monthly}
+              name="Linear"
+              basename={exportBasename('linear', state.termYears, state.interest)}
+            />
           </TabPanel>
           <TabPanel value="graph" active={tab}>
             <Graph annuity={annuity.monthly} linear={linear.monthly} />

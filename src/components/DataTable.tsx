@@ -1,10 +1,19 @@
 import React from 'react';
 import { NumericFormat } from 'react-number-format';
 import { MonthMortgageData } from '../common/Types';
+import { downloadCsv, downloadXlsx } from '../common/export';
 
 type TableProps = {
   data: Array<MonthMortgageData>;
+  /** Shown in the sheet tab and used to name the downloaded file. */
+  name: string;
+  /** Filename without extension. */
+  basename: string;
 };
+
+const buttonClass =
+  'rounded-md border border-brand-200 px-3 py-1.5 text-sm text-brand-500 transition-colors outline-none hover:border-brand-300 hover:text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-300';
+
 
 function TableNumber(props: { value: number }) {
   return (
@@ -42,7 +51,27 @@ function displayRow(month: MonthMortgageData) {
 
 export function DataTable(props: TableProps) {
   return (
-    <div className="max-h-[32rem] overflow-auto rounded-lg border border-brand-100 bg-white shadow-sm">
+    <>
+      <div className="mb-2 flex items-center justify-end gap-2">
+        <span className="mr-auto text-sm text-brand-400">
+          {props.data.length} months
+        </span>
+        <button
+          type="button"
+          className={buttonClass}
+          onClick={() => downloadCsv(props.basename, props.data)}
+        >
+          Download CSV
+        </button>
+        <button
+          type="button"
+          className={buttonClass}
+          onClick={() => downloadXlsx(props.basename, props.data, props.name)}
+        >
+          Download Excel
+        </button>
+      </div>
+      <div className="max-h-[32rem] overflow-auto rounded-lg border border-brand-100 bg-white shadow-sm">
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 bg-white shadow-[0_1px_0_var(--color-brand-100)]">
           <tr>
@@ -72,6 +101,7 @@ export function DataTable(props: TableProps) {
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

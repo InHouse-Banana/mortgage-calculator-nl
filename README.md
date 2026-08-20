@@ -28,6 +28,7 @@ the first version, which this one is based on. The original is still running at
   penalty-free annual allowance most Dutch lenders apply.
 - **Rent vs. buy** — break-even month against your current rent.
 - **Shareable links** — every input is encoded in the URL.
+- **Download the schedule** — CSV or Excel, plain values with no formulas.
 
 ## Running locally
 
