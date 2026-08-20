@@ -1125,3 +1125,70 @@ describe('label and tooltip legibility', () => {
     expect(tip.className).toMatch(/max-w-\[min\(20rem,calc\(100vw-2rem\)\)\]/);
   });
 });
+
+describe('table guide', () => {
+  const toggle = () => screen.getByRole('button', { name: 'How to read this table' });
+
+  it('sits below the schedule, closed by default', () => {
+    render(<App />);
+
+    expect(toggle()).toHaveAttribute('aria-expanded', 'false');
+
+    const body = document.getElementById(toggle().getAttribute('aria-controls')!)!;
+    expect(body).toHaveAttribute('hidden');
+
+    // Below the table, not above it.
+    const table = screen.getByRole('table');
+    expect(
+      table.compareDocumentPosition(toggle()) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('explains every column the table actually renders', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(toggle());
+
+    const headers = within(screen.getByRole('table'))
+      .getAllByRole('columnheader')
+      .map((h) => h.textContent!.replace(' (€)', ''));
+
+    const guide = document.getElementById(toggle().getAttribute('aria-controls')!)!;
+    headers.forEach((header) => {
+      expect(within(guide).getByText(header)).toBeInTheDocument();
+    });
+  });
+
+  it('states the identities the rows are built on', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(toggle());
+
+    const guide = document.getElementById(toggle().getAttribute('aria-controls')!)!;
+    expect(guide).toHaveTextContent('Capital + Interest');
+    expect(guide).toHaveTextContent('Gross − Tax Return');
+    expect(guide).toHaveTextContent('Balance × (rate ÷ 12)');
+  });
+
+  it('explains the euro-level rounding differences', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(toggle());
+
+    const guide = document.getElementById(toggle().getAttribute('aria-controls')!)!;
+    expect(guide).toHaveTextContent(/rounded to the nearest euro/i);
+    expect(guide).toHaveTextContent(/1,991.*1,992|1,992/);
+    // And that the maths itself is not rounded.
+    expect(guide).toHaveTextContent(/Nothing is rounded inside the calculation/i);
+  });
+
+  it('makes clear the deduction applies to interest only', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(toggle());
+
+    const guide = document.getElementById(toggle().getAttribute('aria-controls')!)!;
+    expect(guide).toHaveTextContent(/Only interest qualifies/i);
+    expect(guide).toHaveTextContent(/hypotheekrenteaftrek/i);
+  });
+});
