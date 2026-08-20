@@ -4,28 +4,28 @@
 @theme {
   --font-sans: 'Nunito', sans-serif;
 
-  /* Warm terracotta, derived from the blue-grey scale it replaced by matching
-     relative luminance, then deepened: steps 300-600 carry text, so they are
-     darkened ~20-26% for extra contrast against the light canvas.
+  /* The original grey-blue scale, kept because it reads more calmly behind
+     dense numeric tables than a fully tinted one. Steps 300-600 carry text and
+     are 20% darker in luminance than the originals, for contrast.
      Verified in src/__tests__/theme-test.ts. */
-  --color-brand-50: #faf3ee;
-  --color-brand-100: #f1d7c3;
-  --color-brand-200: #e4ba9a;
-  --color-brand-300: #be753c;
-  --color-brand-400: #915629;
-  --color-brand-500: #76431c;
-  --color-brand-600: #5c3313;
+  --color-brand-50: #f4f4f6;
+  --color-brand-100: #dadbdf;
+  --color-brand-200: #c2c5cc;
+  --color-brand-300: #818696;
+  --color-brand-400: #606672;
+  --color-brand-500: #4d525c;
+  --color-brand-600: #3c3f47;
 
-  --color-canvas: #f5efe8;
+  --color-canvas: #eff0eb;
 
-  /* Header block. Vivid orange rather than a brand step, because the brand
-     steps double as text colours and this saturation is unreadable as type.
-     Held at luminance 0.175 so plain white clears AA on it. */
+  /* The one place colour is spent: the header block. Held at luminance 0.175
+     so plain white clears AA on it. */
   --color-accent: #b85a08;
 
-  /* Chart series. Deliberately outside the brand hue so the lines stay legible
-     against a warm UI, and spread in luminance as well as hue so they remain
-     separable in greyscale and for red-green colour blindness. */
+  /* Chart series. Saturated, so the lines never read as UI chrome against the
+     near-neutral brand scale, and spread in luminance as well as hue so they
+     stay separable in greyscale and for red-green colour blindness. Recharts'
+     own defaults sat at ~1.9:1 on white, which is too faint to trace. */
   --color-chart-gross: #593893;
   --color-chart-capital: #297b76;
   --color-chart-interest: #c48320;

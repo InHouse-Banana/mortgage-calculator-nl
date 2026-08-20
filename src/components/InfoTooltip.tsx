@@ -79,9 +79,13 @@ export function InfoTooltip({ text }: InfoTooltipProps) {
         <span
           id={id}
           role="tooltip"
-          className="absolute bottom-full left-1/2 z-10 mb-2 w-56 -translate-x-1/2 rounded-md border border-brand-100 bg-white p-2 text-xs font-normal normal-case text-brand-500 shadow-md"
+          className="absolute bottom-full left-1/2 z-10 mb-2 w-80 max-w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 space-y-2 rounded-md border border-brand-100 bg-white p-3 text-xs leading-relaxed font-normal normal-case text-brand-500 shadow-md"
         >
-          {text}
+          {text.split('\n\n').map((paragraph) => (
+            <span key={paragraph} className="block">
+              {paragraph}
+            </span>
+          ))}
         </span>
       )}
     </span>

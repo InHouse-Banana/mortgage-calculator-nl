@@ -159,7 +159,9 @@ export function Mortgage(props: Props) {
             value: props.cost,
             field: null,
             disabled: true,
-            info: 'Switches every purchase cost at once. The Purchase Costs tab stays in step — untick lines there and this shows a dash.',
+            info: `Switches every purchase cost at once.
+
+The Purchase Costs tab stays in step — untick lines there and this shows a dash.`,
             toggle: {
               checked: props.allCostsEnabled,
               indeterminate: !props.allCostsEnabled && props.someCostsEnabled,
@@ -178,7 +180,11 @@ export function Mortgage(props: Props) {
         title={`Rent vs. buy (${props.termYears} years)`}
         collapsible
         defaultOpen={false}
-        info="Break-even: the first month where what you've spent buying — your own savings put in on day one, plus net payments so far — drops to or below what you'd have spent renting. Purchase costs are financed into the loan, so they are already inside the payments. Equity and house-price changes are not counted."
+        info={`The first month where what you've spent buying drops to or below what you'd have spent renting.
+
+Buying counts your own savings put in on day one, plus net payments so far. Purchase costs are financed into the loan, so they are already inside those payments.
+
+Equity built and any change in house price are not counted.`}
       >
         <Field spec={{ title: 'Total invested on rent', prepend: '€', value: props.rent * props.termMonths, field: null, disabled: true }} onChange={onChange} />
         <Field spec={{ title: 'Total rent - total cost (gross)', prepend: '€', value: props.rent * props.termMonths - props.annuity.totalInvestedGross, field: null, disabled: true }} onChange={onChange} />

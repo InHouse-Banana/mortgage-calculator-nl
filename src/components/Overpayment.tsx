@@ -67,12 +67,12 @@ function BreachNotice({
   const worst = breaches.reduce((a, b) => (b.rate > a.rate ? b : a));
   const limitPercent = Math.round(PENALTY_FREE_OVERPAYMENT_RATE * 100);
 
-  // Amber would disappear into a terracotta UI, so the caution carries a rose
-  // tint plus a heavier left rule — shape as well as colour, not colour alone.
+  // Amber plus a heavier left rule: the caution is carried by shape as well as
+  // colour, so it survives greyscale and colour-blind viewing.
   return (
     <div
       role="status"
-      className="rounded-md border border-rose-200 border-l-4 border-l-rose-400 bg-rose-50 px-3 py-2 text-xs text-rose-900"
+      className="rounded-md border border-amber-200 border-l-4 border-l-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-900"
     >
       <span className="font-semibold">
         Over the {limitPercent}% penalty-free limit
@@ -113,7 +113,8 @@ function ResultCard({
     <Card title={title}>
       <BreachNotice breaches={breaches} loan={loan} />
       <InputField
-        title={`Payoff month (of ${termMonths})`}
+        title="Payoff month"
+        titleNote={`(of ${termMonths})`}
         value={withOverpayment.payoffMonth}
         disabled
         onChange={() => {}}
@@ -125,14 +126,16 @@ function ResultCard({
         onChange={() => {}}
       />
       <InputField
-        title="Interest saved (gross)"
+        title="Interest saved"
+        titleNote="(gross)"
         prepend="€"
         value={interestSaved}
         disabled
         onChange={() => {}}
       />
       <InputField
-        title="Total interest with overpayment (gross)"
+        title="Total interest with overpayment"
+        titleNote="(gross)"
         prepend="€"
         value={withOverpayment.totalInterestGross}
         disabled
@@ -147,7 +150,9 @@ export function Overpayment(props: Props) {
     <div className="space-y-4">
       <Card
         title="Extra repayments"
-        info="Model paying more than the required monthly amount: every month, once a year, or as a one-off lump sum. All three stack."
+        info={`Model paying more than the required monthly amount: every month, once a year, or as a one-off lump sum.
+
+All three stack, and each one shortens the term rather than lowering the instalment.`}
       >
         <InputField
           title="Extra amount per month"

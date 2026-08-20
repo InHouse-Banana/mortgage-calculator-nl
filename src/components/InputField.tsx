@@ -11,6 +11,12 @@ type InputFieldProps = {
   disabled?: boolean;
   info?: string;
   /**
+   * Rendered on its own line under the title. For parentheticals that would
+   * otherwise wrap mid-phrase — "Payoff month (of" / "360)".
+   * Still part of the accessible name, so queries see the whole label.
+   */
+  titleNote?: string;
+  /**
    * Digits shown after the decimal point. Defaults to 0 for money (cents are
    * noise on figures this size) and 2 otherwise, so rates keep their precision.
    * Display only — state and the calculation engine keep full precision.
@@ -34,6 +40,7 @@ export function InputField({
   onChange,
   disabled,
   info,
+  titleNote,
   decimals,
   toggle,
 }: InputFieldProps) {
@@ -78,7 +85,15 @@ export function InputField({
             className="h-3.5 w-3.5 rounded border-brand-300 text-brand-400 focus:ring-2 focus:ring-brand-200"
           />
         )}
-        <label htmlFor={id}>{title}</label>
+        <label htmlFor={id}>
+          {title}
+          {titleNote && (
+            <>
+              {' '}
+              <span className="block">{titleNote}</span>
+            </>
+          )}
+        </label>
         {info && <InfoTooltip text={info} />}
         {disabled && (
           <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">

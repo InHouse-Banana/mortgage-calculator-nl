@@ -507,3 +507,67 @@ describe('nominal vs effective interest rate', () => {
     expect(nominalPayment - altPayment).toBeGreaterThan(20);
   });
 });
+
+describe('net cost rises over an annuity term (tax deduction shrinking)', () => {
+  // Looks wrong at a glance — the gross payment never changes, yet the net
+  // column climbs month after month. It is correct and unavoidable: the
+  // deduction is a percentage of the interest, the interest falls as the
+  // balance falls, so net = gross - deduction necessarily rises.
+  const loan = 270000;
+  const data = calculateAnnuityData(4.62, 36.93, 0, loan, 360);
+
+  it('holds the gross payment level', () => {
+    data.monthly.forEach((m) =>
+      expect(m.grossPaid).toBeCloseTo(data.monthly[0].grossPaid, 6),
+    );
+  });
+
+  it('shrinks the interest and the deduction together, every month', () => {
+    data.monthly.slice(1).forEach((m, i) => {
+      expect(m.interest).toBeLessThan(data.monthly[i].interest);
+      expect(m.deduction).toBeLessThan(data.monthly[i].deduction);
+      expect(m.deduction).toBeCloseTo(m.interest * 0.3693, 6);
+    });
+  });
+
+  it('therefore raises the net payment, every month', () => {
+    data.monthly.slice(1).forEach((m, i) => {
+      expect(m.netPaid).toBeGreaterThan(data.monthly[i].netPaid);
+    });
+
+    expect(data.monthly[0].netPaid).toBeCloseTo(1003.48, 2);
+    expect(data.monthly[130].netPaid).toBeCloseTo(1086.72, 2);
+  });
+
+  it('does not happen without a deduction', () => {
+    const noDeduction = calculateAnnuityData(4.62, 0, 0, loan, 360);
+    noDeduction.monthly.forEach((m) =>
+      expect(m.netPaid).toBeCloseTo(noDeduction.monthly[0].netPaid, 6),
+    );
+  });
+
+  it('rises on the reported yearly-overpayment schedule too', () => {
+    const withYearly = calculateAnnuityData(4.62, 36.93, 0, loan, 360, {
+      monthly: 0,
+      yearly: { amount: 2500, monthOfYear: 12 },
+    });
+
+    // Ignore the overpayment months, which spike by design.
+    const plain = withYearly.monthly
+      .slice(0, withYearly.totals.payoffMonth - 1)
+      .filter((m) => m.overpaid === 0);
+
+    plain.slice(1).forEach((m, i) =>
+      expect(m.netPaid).toBeGreaterThan(plain[i].netPaid),
+    );
+
+    // Reported table: ~1,003 in month 1, past 1,130 by month 131. It climbs
+    // faster than the plain schedule (1,087 at the same point) because the
+    // overpayments shrink the balance, and so the interest, more quickly.
+    expect(withYearly.monthly[0].netPaid).toBeCloseTo(1003.48, 2);
+    expect(withYearly.monthly[130].netPaid).toBeCloseTo(1132.58, 2);
+    expect(withYearly.monthly[130].netPaid).toBeGreaterThan(
+      calculateAnnuityData(4.62, 36.93, 0, loan, 360).monthly[130].netPaid,
+    );
+  });
+});

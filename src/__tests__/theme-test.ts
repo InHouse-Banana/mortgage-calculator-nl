@@ -129,12 +129,15 @@ describe('chart series colours', () => {
     lums.slice(1).forEach((l, i) => expect(l - lums[i]).toBeGreaterThan(0.05));
   });
 
-  it('sits away from the brand hue, so the chart reads as its own layer', () => {
-    // The lines are drawn on a white card, so luminance against the brand is
-    // irrelevant — hue distance is what stops them reading as UI chrome.
-    const brandHue = hue(token('brand-400'));
-    expect(hueGap(hue(token('chart-gross')), brandHue)).toBeGreaterThan(90);
-    expect(hueGap(hue(token('chart-capital')), brandHue)).toBeGreaterThan(90);
+  it('stays saturated against a near-neutral UI, so lines read as data', () => {
+    // Hue distance is meaningless here — the brand scale is almost grey, so it
+    // has no meaningful hue. Saturation is what separates data from chrome.
+    series.forEach((name) =>
+      expect(saturation(token(name))).toBeGreaterThan(0.3),
+    );
+    ['brand-300', 'brand-400', 'brand-500', 'brand-600'].forEach((name) =>
+      expect(saturation(token(name))).toBeLessThan(0.2),
+    );
   });
 
   it('separates the three series in hue as well as luminance', () => {

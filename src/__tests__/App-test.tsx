@@ -756,9 +756,10 @@ describe('rent-vs-buy break-even in the UI', () => {
     '&termYears=30&costsOff=notary,valuation,financialAdvisor,realStateAgent,' +
     'structuralSurvey,transferTax,bankGuarantee,nhg';
 
+  // The value is the sibling of the label span. Reading the whole card instead
+  // would pass on any unrelated figure changing.
   const breakEven = (which: 'Annuity' | 'Linear') =>
-    screen.getByText(`Break-even (${which})`).parentElement!.parentElement!
-      .textContent!;
+    screen.getByText(`Break-even (${which})`).nextElementSibling!.textContent!;
 
   it('accounts for the deposit instead of breaking even in month 1', () => {
     window.history.replaceState(null, '', REPORTED);
@@ -965,5 +966,162 @@ describe('info tooltips', () => {
 
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+});
+
+describe('extra repayments feed through to the other cards', () => {
+  const BASE =
+    '?price=310000&interest=4.62&deduction=36.93&savings=40000&rent=1600' +
+    '&termYears=30&costsOff=notary,valuation,financialAdvisor,realStateAgent,' +
+    'structuralSurvey,transferTax,bankGuarantee,nhg';
+
+  function open(search: string) {
+    window.history.replaceState(null, '', search);
+    return render(<App />);
+  }
+
+  const euro = (label: string) =>
+    Number(screen.getByLabelText(label).getAttribute('value')!.replace(/,/g, ''));
+
+  const bothTotals = (label: string) =>
+    screen
+      .getAllByLabelText(label)
+      .map((el) => Number(el.getAttribute('value')!.replace(/,/g, '')));
+
+  it('lowers the total cost of buying in the rent-vs-buy card', () => {
+    const plain = open(BASE);
+    const before = {
+      rent: euro('Total invested on rent'),
+      gross: euro('Total rent - total cost (gross)'),
+      net: euro('Total rent - total cost (net)'),
+    };
+    plain.unmount();
+
+    open(`${BASE}&overpaymentYearly=2500&overpaymentYearlyMonth=12`);
+
+    // Overpaying costs less interest, so more of the rent bill is "saved".
+    expect(euro('Total rent - total cost (gross)')).toBeGreaterThan(before.gross);
+    expect(euro('Total rent - total cost (net)')).toBeGreaterThan(before.net);
+    // What you would have spent renting is unaffected by how you repay.
+    expect(euro('Total invested on rent')).toBe(before.rent);
+  });
+
+  it('moves the break-even month', () => {
+    const value = () =>
+      screen.getByText('Break-even (Annuity)').nextElementSibling!.textContent!;
+
+    const plain = open(BASE);
+    const before = value();
+    plain.unmount();
+
+    open(`${BASE}&overpaymentYearly=2500&overpaymentYearlyMonth=12`);
+
+    // Overpaying front-loads cash out of pocket, so the crossover shifts.
+    expect(value()).not.toBe(before);
+    expect(before).toMatch(/^Month \d+ \(year \d+\)$/);
+  });
+
+  it('lowers the totals on both sides of the Annuity vs. Linear card', () => {
+    const plain = open(BASE);
+    const beforeInterest = bothTotals('Total interest (gross)');
+    const beforeRepaid = bothTotals('Total repaid (gross)');
+    plain.unmount();
+
+    open(`${BASE}&overpaymentYearly=2500&overpaymentYearlyMonth=12`);
+
+    const afterInterest = bothTotals('Total interest (gross)');
+    const afterRepaid = bothTotals('Total repaid (gross)');
+
+    expect(afterInterest).toHaveLength(2);
+    afterInterest.forEach((v, i) => expect(v).toBeLessThan(beforeInterest[i]));
+    afterRepaid.forEach((v, i) => expect(v).toBeLessThan(beforeRepaid[i]));
+  });
+
+  it('leaves the required loan and purchase cost alone', () => {
+    const plain = open(BASE);
+    const before = { loan: euro('Required loan'), cost: euro('Purchase cost') };
+    plain.unmount();
+
+    open(`${BASE}&overpaymentYearly=2500&overpaymentYearlyMonth=12`);
+
+    // How you repay cannot change what you had to borrow in the first place.
+    expect(euro('Required loan')).toBe(before.loan);
+    expect(euro('Purchase cost')).toBe(before.cost);
+  });
+
+  it('scales with the size of the extra repayment', () => {
+    const interestFor = (yearly: number) => {
+      const view = open(`${BASE}&overpaymentYearly=${yearly}`);
+      const value = bothTotals('Total interest (gross)')[0];
+      view.unmount();
+      return value;
+    };
+
+    const none = interestFor(0);
+    const some = interestFor(2500);
+    const lots = interestFor(10000);
+
+    expect(some).toBeLessThan(none);
+    expect(lots).toBeLessThan(some);
+  });
+});
+
+describe('label and tooltip legibility', () => {
+  it('breaks the payoff-month parenthetical onto its own line', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
+
+    const input = screen.getAllByLabelText(/^Payoff month/)[0];
+    const label = document.querySelector(`label[for="${input.id}"]`)!;
+
+    // "(of 360)" is a block, so it never wraps as "Payoff month (of" / "360)".
+    const note = label.querySelector('span.block');
+    expect(note).not.toBeNull();
+    expect(note!.textContent).toBe('(of 360)');
+
+    // The accessible name still reads as one phrase.
+    expect(input).toHaveAccessibleName('Payoff month (of 360)');
+  });
+
+  it.each(['Interest saved (gross)', 'Total interest with overpayment (gross)'])(
+    'keeps "%s" readable as one accessible name',
+    async (name) => {
+      const user = userEvent.setup();
+      render(<App />);
+      await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
+
+      expect(screen.getAllByLabelText(name).length).toBeGreaterThan(0);
+    },
+  );
+
+  it('renders long tooltips as paragraphs, not one block of text', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // "Effective annual rate" is one of the longest entries.
+    const label = screen.getByText('Effective annual rate');
+    const icon = label.parentElement!.querySelector('button')!;
+    await user.hover(icon);
+
+    const tip = screen.getByRole('tooltip');
+    const paragraphs = tip.querySelectorAll('span.block');
+
+    expect(paragraphs.length).toBeGreaterThanOrEqual(3);
+    paragraphs.forEach((p) => expect(p.textContent!.trim().length).toBeGreaterThan(0));
+    // No stray blank-line markers left in the rendered output.
+    expect(tip.textContent).not.toContain('\n\n');
+  });
+
+  it('gives tooltips room to breathe without overflowing a phone', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const label = screen.getByText('Effective annual rate');
+    await user.hover(label.parentElement!.querySelector('button')!);
+
+    const tip = screen.getByRole('tooltip');
+    expect(tip.className).toMatch(/\bw-80\b/);
+    expect(tip.className).toMatch(/max-w-\[min\(20rem,calc\(100vw-2rem\)\)\]/);
   });
 });
