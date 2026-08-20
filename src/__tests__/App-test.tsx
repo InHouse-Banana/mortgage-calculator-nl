@@ -1226,3 +1226,35 @@ describe('graph presentation', () => {
     );
   });
 });
+
+it('sets the table guide at the same size as the disclaimer below it', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+
+  const toggle = screen.getByRole('button', { name: 'How to read this table' });
+  await user.click(toggle);
+  const guide = document.getElementById(toggle.getAttribute('aria-controls')!)!;
+
+  const disclaimer = screen
+    .getByText('This calculator is for illustrative purposes only.')
+    .closest('section')!;
+  expect(disclaimer.className).toMatch(/\btext-base\b/);
+
+  // Column names and prose match the disclaimer; formulas sit one step down,
+  // so they read as annotation rather than body copy.
+  const term = within(guide).getByText('Interest');
+  expect(term.className).toMatch(/\btext-base\b/);
+
+  const [formula, prose] = term.nextElementSibling!.querySelectorAll('span');
+  expect(formula.className).toMatch(/\btext-sm\b/);
+  expect(prose.className).toMatch(/\btext-base\b/);
+
+  // The rounding explanation is body copy too.
+  const rounding = within(guide)
+    .getByText(/Why a row can look a euro out/)
+    .closest('div')!;
+  expect(rounding.className).toMatch(/\btext-base\b/);
+
+  // Nothing left at the old smallest size.
+  expect(guide.innerHTML).not.toMatch(/\btext-xs\b/);
+});

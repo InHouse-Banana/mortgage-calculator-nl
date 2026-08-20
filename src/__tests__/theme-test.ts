@@ -183,3 +183,76 @@ describe('chart rendering', () => {
     expect(source).not.toMatch(/unit="€"/);
   });
 });
+
+describe('type scale', () => {
+  // The app uses four sizes with settled roles:
+  //   text-xl   section headings
+  //   text-base body — card titles, input labels, the disclaimer
+  //   text-sm   secondary — section subtitles, table cells, buttons
+  //   text-xs   annotation — tooltips, the warning banner
+  // These assertions derive the expected size from the component that already
+  // owns each role, so a new block cannot quietly invent a fifth size.
+  const read_ = (file: string) =>
+    readFileSync(resolve(process.cwd(), file), 'utf8');
+
+  function sizesIn(source: string): Set<string> {
+    return new Set(source.match(/\btext-(xs|sm|base|lg|xl|2xl|3xl)\b/g) ?? []);
+  }
+
+  it('uses no size outside the four the app has settled on', () => {
+    const files = [
+      'src/App.tsx',
+      'src/components/Card.tsx',
+      'src/components/TableGuide.tsx',
+      'src/components/InputField.tsx',
+      'src/components/DataTable.tsx',
+      'src/components/Tabs.tsx',
+      'src/components/InfoTooltip.tsx',
+      'src/components/Overpayment.tsx',
+    ];
+    const allowed = new Set([
+      'text-xs',
+      'text-sm',
+      'text-base',
+      'text-xl',
+      'text-2xl',
+      'text-3xl', // the page h1's responsive pair
+    ]);
+
+    files.forEach((file) =>
+      sizesIn(read_(file)).forEach((size) =>
+        expect(allowed, `${file} uses ${size}`).toContain(size),
+      ),
+    );
+  });
+
+  it('sets the table guide at the body size the disclaimer uses', () => {
+    const guide = read_('src/components/TableGuide.tsx');
+    const disclaimer = read_('src/App.tsx').match(
+      /<section className="([^"]*shadow-sm)">\s*\n\s*<h3[^>]*>\s*Disclaimer/,
+    );
+
+    expect(disclaimer![1]).toContain('text-base');
+    // Terms and prose sit at that same body size.
+    expect(guide).toContain('<dt className="text-base font-semibold');
+    expect(guide).toMatch(/block text-base text-brand-500/);
+    // Formulas drop one step, to the app's secondary tier.
+    expect(guide).toMatch(/font-mono text-sm/);
+    // Nothing left at annotation size.
+    expect(sizesIn(guide).has('text-xs')).toBe(false);
+  });
+
+  it('styles the guide subheading like every other in-card subheading', () => {
+    const convention = read_('src/components/Card.tsx').match(
+      /<h4 className="([^"]*)"/,
+    )![1];
+    const guide = read_('src/components/TableGuide.tsx').match(
+      /<h4 className="([^"]*)"/,
+    )![1];
+
+    ['text-sm', 'font-semibold', 'tracking-wide', 'uppercase'].forEach((cls) => {
+      expect(convention).toContain(cls);
+      expect(guide, `guide h4 missing ${cls}`).toContain(cls);
+    });
+  });
+});

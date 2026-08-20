@@ -50,13 +50,13 @@ export function TableGuide() {
     <Card title="How to read this table" collapsible defaultOpen={false} layout="plain">
       <dl className="space-y-3">
         {COLUMNS.map((column) => (
-          <div key={column.name} className="sm:grid sm:grid-cols-[7rem_1fr] sm:gap-4">
-            <dt className="text-sm font-semibold text-brand-500">{column.name}</dt>
+          <div key={column.name} className="sm:grid sm:grid-cols-[8rem_1fr] sm:gap-4">
+            <dt className="text-base font-semibold text-brand-500">{column.name}</dt>
             <dd className="mt-1 sm:mt-0">
-              <span className="block font-mono text-xs text-brand-400">
+              <span className="block font-mono text-sm text-brand-400">
                 {column.formula}
               </span>
-              <span className="mt-1 block text-sm text-brand-500">
+              <span className="mt-1 block text-base text-brand-500">
                 {column.text}
               </span>
             </dd>
@@ -64,8 +64,8 @@ export function TableGuide() {
         ))}
       </dl>
 
-      <div className="space-y-2 border-t border-brand-100 pt-4 text-sm text-brand-500">
-        <h4 className="font-semibold text-brand-500">
+      <div className="space-y-2 border-t border-brand-100 pt-4 text-base text-brand-500">
+        <h4 className="mb-2 text-sm font-semibold tracking-wide text-brand-400 uppercase">
           Why a row can look a euro out
         </h4>
         <p>
