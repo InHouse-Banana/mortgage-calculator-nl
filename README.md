@@ -59,6 +59,15 @@ built straight from this repository on every push to `master`. `vercel.json`
 pins the framework, build command and output directory, so importing the repo in
 Vercel needs no further configuration and no environment variables.
 
+## SEO notes
+
+The app is client-rendered, so a crawler's first fetch would otherwise be an empty
+`<div id="root">`. Real prose describing the calculator lives in that div and is
+replaced by React on mount, so the first pass has something to read. Structured data
+(`WebApplication`) sits in the head, where it needs no JavaScript at all. Every input
+change rewrites the query string, so a canonical URL points all permutations at one
+page.
+
 ## Privacy
 
 Every calculation runs in your browser. Nothing you type — price, savings, income,

@@ -178,3 +178,51 @@ describe('link previews', () => {
     expect(read('scripts/generate-og-image.py')).toContain('public/og-image.png');
   });
 });
+
+describe('discoverability', () => {
+  const html = read('index.html');
+
+  it('does not reuse the upstream site\'s title', () => {
+    // whathemortgage.com ranks first for "Annuity and Lineal mortgage
+    // calculator for the Netherlands" and has years of authority on it.
+    // Shipping a near-identical title invites Google to dedupe us away.
+    const title = html.match(/<title>(.*?)<\/title>/)![1];
+
+    expect(title).not.toMatch(/^Annuity and Lin(ea|a)r mortgage calculator for the Netherlands$/);
+    expect(title.length).toBeGreaterThan(30);
+    expect(title.length).toBeLessThanOrEqual(70); // Google truncates past ~70
+  });
+
+  it('keeps the meta description inside what Google will show', () => {
+    const description = html.match(/name="description"\s*\n?\s*content="([^"]*)"/)![1];
+
+    expect(description.length).toBeGreaterThan(70);
+    expect(description.length).toBeLessThanOrEqual(200);
+  });
+
+  it('publishes structured data a crawler can read without running JS', () => {
+    const block = html.match(
+      /<script type="application\/ld\+json">([\s\S]*?)<\/script>/,
+    );
+    expect(block).not.toBeNull();
+
+    const data = JSON.parse(block![1]);
+    expect(data['@type']).toBe('WebApplication');
+    expect(data.applicationCategory).toBe('FinanceApplication');
+    expect(data.url).toBe('https://mortgage-calculator-nl.vercel.app/');
+    expect(data.featureList.length).toBeGreaterThan(3);
+  });
+
+  it('serves real prose in the shell, not an empty root div', () => {
+    // A crawler's first pass happens before it decides whether to spend a
+    // render budget on JavaScript. An empty <div id="root"> gives it nothing.
+    const root = html.slice(html.indexOf('<div id="root">'), html.indexOf('</body>'));
+    const prose = root.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+    expect(prose.length).toBeGreaterThan(800);
+    expect(prose).toMatch(/annuity/i);
+    expect(prose).toMatch(/linear/i);
+    expect(prose).toMatch(/NHG/);
+    expect(root).toMatch(/<h1>/);
+  });
+});

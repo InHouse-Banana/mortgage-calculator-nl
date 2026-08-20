@@ -7,11 +7,11 @@
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
-      content="Calculator and comparator for annuity and linear mortgage: Loan, cost, own savings, interes and gross and net monthly payments"
+      content="Compare annuity and linear mortgages in the Netherlands. Purchase costs, transfer tax, NHG, mortgage interest deduction, extra repayments and a rent-vs-buy break-even. Free, no sign-up."
     />
     <meta
       name="keywords"
-      content="Mortgage calculator netherlands, dutch mortgage calculator, annuity mortgage calculator, linear mortgage calculator, calculate monthly mortgage payment netherlands, mortgage payment calculator netherlands, mortgage interest calculator netherlands, emi calculator netherlands, Mortgage rates, Property financing, Mortgage repayment, Monthly mortgage cost breakdown, Annuity vs Lineal mortgage"
+      content="dutch mortgage calculator, annuity vs linear mortgage, hypotheek berekenen, NHG calculator, mortgage interest deduction netherlands, hypotheekrenteaftrek, transfer tax netherlands, overdrachtsbelasting, extra repayment mortgage, rent vs buy netherlands, expat mortgage netherlands"
     />
 
     <meta
@@ -28,11 +28,11 @@
     <meta property="og:url" content="https://mortgage-calculator-nl.vercel.app/" />
     <meta
       property="og:title"
-      content="Annuity and Linear mortgage calculator for the Netherlands"
+      content="Dutch Mortgage Calculator — Annuity vs Linear, NHG &amp; Overpayments"
     />
     <meta
       property="og:description"
-      content="Compare annuity and linear Dutch mortgages: purchase costs, NHG, tax deduction, overpayments and rent-vs-buy break-even."
+      content="Compare annuity and linear Dutch mortgages: purchase costs, NHG, tax deduction, extra repayments and a rent-vs-buy break-even."
     />
     <meta property="og:site_name" content="Mortgage Calculator v2" />
     <meta
@@ -54,10 +54,87 @@
     />
 
     <link rel="manifest" href="/manifest.json" />
-    <title>Annuity and Linear mortgage calculator for the Netherlands</title>
+    <title>Dutch Mortgage Calculator — Annuity vs Linear, NHG &amp; Overpayments</title>
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Dutch Mortgage Calculator v2",
+        "url": "https://mortgage-calculator-nl.vercel.app/",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "inLanguage": "en",
+        "description": "Compare annuity and linear mortgages in the Netherlands, including purchase costs, NHG, the mortgage interest deduction, extra repayments and a rent-vs-buy break-even.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "featureList": [
+          "Annuity vs linear repayment comparison",
+          "Configurable mortgage term from 1 to 40 years",
+          "Dutch purchase costs: transfer tax, NHG, notary, valuation, agent",
+          "Mortgage interest deduction, gross and net",
+          "Extra repayments: monthly, yearly or a one-off lump sum",
+          "Rent vs buy break-even"
+        ]
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main style="max-width: 44rem; margin: 0 auto; padding: 3rem 1.5rem; font-family: system-ui, sans-serif; line-height: 1.6; color: #3c3f47">
+        <h1>Dutch Mortgage Calculator</h1>
+        <p>
+          Compare <strong>annuity</strong> and <strong>linear</strong> mortgage
+          repayment plans for buying a home in the Netherlands, side by side, with
+          a full month-by-month schedule and a chart.
+        </p>
+        <h2>What it works out</h2>
+        <ul>
+          <li>
+            <strong>Purchase costs</strong> — transfer tax (overdrachtsbelasting),
+            NHG, notary, valuation, structural survey, mortgage adviser and estate
+            agent fees. Every line can be switched off, so you can model a
+            first-time-buyer exemption or a purchase above the NHG cap.
+          </li>
+          <li>
+            <strong>The loan you need</strong>, your loan-to-price ratio, and how
+            the NHG fee is financed into the mortgage.
+          </li>
+          <li>
+            <strong>Gross and net payments</strong>, applying the Dutch mortgage
+            interest deduction (hypotheekrenteaftrek). Because the deduction is a
+            share of the interest, and the interest shrinks as you repay, your net
+            monthly cost rises over the term even though the gross payment does not.
+          </li>
+          <li>
+            <strong>Any term from 1 to 40 years</strong>, not just the usual 30.
+          </li>
+          <li>
+            <strong>Extra repayments</strong> — every month, once a year, or a
+            one-off lump sum. All three stack, they shorten the term rather than
+            lowering the instalment, and the calculator warns when you pass the
+            10% a year most Dutch lenders allow without a penalty.
+          </li>
+          <li>
+            <strong>Rent versus buying</strong> — the month at which what you have
+            spent buying drops below what you would have spent renting.
+          </li>
+        </ul>
+        <h2>Annuity or linear?</h2>
+        <p>
+          An <strong>annuity</strong> mortgage keeps the gross monthly payment the
+          same for the whole term: mostly interest early on, mostly capital later.
+          A <strong>linear</strong> mortgage repays the same amount of capital every
+          month, so payments start higher and fall steadily — and it costs less
+          interest overall.
+        </p>
+        <p>
+          Every figure is calculated in your browser. Nothing you enter is sent
+          anywhere, and each scenario has its own shareable link.
+        </p>
+        <p><em>This calculator is for illustrative purposes only. Consult a qualified adviser before making any decision.</em></p>
+      </main>
+    </div>
     <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>
