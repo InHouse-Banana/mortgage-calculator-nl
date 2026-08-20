@@ -4,6 +4,8 @@ Run from the repo root:
 
     curl -sL -o /tmp/Nunito.ttf \
       "https://github.com/google/fonts/raw/main/ofl/nunito/Nunito%5Bwght%5D.ttf"
+    curl -sL -o /tmp/NunitoItalic.ttf \
+      "https://github.com/google/fonts/raw/main/ofl/nunito/Nunito-Italic%5Bwght%5D.ttf"
     python3 scripts/generate-og-image.py
 
 Kept as a script rather than a build step: the card changes once a year at most,
@@ -22,9 +24,11 @@ BRAND200 = (194, 197, 204)
 WHITE    = (255, 255, 255)
 CHART = [(89, 56, 147), (41, 123, 118), (196, 131, 32)]  # gross, capital, interest
 
-def font(size, weight):
-    f = ImageFont.truetype('/tmp/Nunito.ttf', size)
-    f.set_variation_by_name(weight)
+def font(size, weight, italic=False):
+    # The italic file names its instances "Bold Italic", not "Bold".
+    path = '/tmp/NunitoItalic.ttf' if italic else '/tmp/Nunito.ttf'
+    f = ImageFont.truetype(path, size)
+    f.set_variation_by_name(f'{weight} Italic' if italic else weight)
     return f
 
 img = Image.new('RGB', (W, H), CANVAS)
@@ -34,17 +38,17 @@ d = ImageDraw.Draw(img)
 M, TOP, BH = 64, 88, 300
 d.rounded_rectangle([M, TOP, W - M, TOP + BH], radius=28, fill=ACCENT)
 
-d.text((M + 56, TOP + 74), 'Mortgage Calculator', font=font(76, 'Bold'), fill=WHITE)
+# "Mortgage Calculator Revised", with Revised in true italic — the same
+# treatment as the h1 on the page, rather than a separate badge.
+title_font = font(70, 'Bold')
+italic_font = font(70, 'Bold', italic=True)
+tx = M + 56
+d.text((tx, TOP + 78), 'Mortgage Calculator ', font=title_font, fill=WHITE)
+tx += d.textlength('Mortgage Calculator ', font=title_font)
+d.text((tx, TOP + 78), 'Revised', font=italic_font, fill=WHITE)
+
 d.text((M + 56, TOP + 168), 'Annuity and Linear mortgages for the Netherlands',
        font=font(34, 'Regular'), fill=WHITE)
-
-# Version tag, top right of the block.
-tag = 'v2'
-tf = font(34, 'Bold')
-tw = d.textlength(tag, font=tf)
-d.rounded_rectangle([W - M - 56 - tw - 40, TOP + 52, W - M - 56, TOP + 52 + 62],
-                    radius=31, outline=WHITE, width=3)
-d.text((W - M - 56 - tw - 20, TOP + 64), tag, font=tf, fill=WHITE)
 
 # Feature line.
 y = TOP + BH + 62

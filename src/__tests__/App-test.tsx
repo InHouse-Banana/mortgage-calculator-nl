@@ -1258,3 +1258,19 @@ it('sets the table guide at the same size as the disclaimer below it', async () 
   // Nothing left at the old smallest size.
   expect(guide.innerHTML).not.toMatch(/\btext-xs\b/);
 });
+
+describe('page heading', () => {
+  it('sets "Revised" in italics without adding spoken emphasis', () => {
+    render(<App />);
+
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toHaveAccessibleName('Mortgage Calculator Revised');
+
+    // <i>, not <em>: a variant name set off typographically, not stressed
+    // emphasis, so a screen reader should not announce it differently.
+    const italic = heading.querySelector('i');
+    expect(italic).not.toBeNull();
+    expect(italic!.textContent).toBe('Revised');
+    expect(heading.querySelector('em')).toBeNull();
+  });
+});

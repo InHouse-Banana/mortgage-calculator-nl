@@ -256,3 +256,16 @@ describe('type scale', () => {
     });
   });
 });
+
+describe('webfont', () => {
+  it('loads real italic faces, so italics are not browser-slanted', () => {
+    const importUrl = css.match(/@import url\('([^']+)'\)/)![1];
+
+    expect(importUrl).toContain('Nunito');
+    // ital axis, and a bold italic for the h1.
+    expect(importUrl).toMatch(/ital,wght@/);
+    expect(importUrl).toContain('1,700');
+    // Keep text visible while the font loads.
+    expect(importUrl).toContain('display=swap');
+  });
+});
