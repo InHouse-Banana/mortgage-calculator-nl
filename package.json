@@ -39,9 +39,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint .",
-    "invalidate": "aws cloudfront create-invalidation --distribution-id E2K5CCBOOMKKA6 --paths / --profile santiago",
-    "deploy": "npm run build && aws s3 sync --acl public-read dist/. s3://whathemortgage.com/ --profile santiago && npm run invalidate"
+    "lint": "eslint ."
   },
   "browserslist": {
     "production": [

@@ -12,8 +12,16 @@
 /dist
 /build
 
+# local working notes, not part of the project
+/context
+
+# vercel
+.vercel
+
 # misc
 .DS_Store
+.env
+.env.*
 .env.local
 .env.development.local
 .env.test.local

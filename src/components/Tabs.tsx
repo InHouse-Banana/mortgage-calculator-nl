@@ -52,7 +52,7 @@ export function Tabs<T extends string>({
             onClick={() => onChange(tab.value)}
             onKeyDown={(event) => handleKeyDown(event, index)}
             className={
-              '-mb-px cursor-pointer border-b-2 px-4 py-2 text-sm font-semibold transition-colors ' +
+              '-mb-px cursor-pointer border-b-2 px-4 py-2 text-base font-semibold transition-colors ' +
               (isActive
                 ? 'border-brand-400 text-brand-500'
                 : 'border-transparent text-brand-300 hover:border-brand-200 hover:text-brand-400')

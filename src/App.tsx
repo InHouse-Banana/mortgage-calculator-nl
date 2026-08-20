@@ -4,8 +4,16 @@ import {
   calculateLinearData,
   calgulateLoanFigures,
   calculateBreakEvenMonth,
+  findAnnualOverpaymentBreaches,
 } from './common/Formulas';
 import { Overpayment as OverpaymentType } from './common/Types';
+import {
+  DEFAULT_TERM_YEARS,
+  DEFAULT_YEARLY_OVERPAYMENT_MONTH,
+  MAX_TERM_YEARS,
+  MIN_TERM_YEARS,
+  MONTHS_PER_YEAR,
+} from './common/constants';
 import { Costs } from './components/Costs';
 import { DataTable } from './components/DataTable';
 import { Graph } from './components/Graph';
@@ -20,7 +28,24 @@ export type ToggleableCost =
   | 'valuation'
   | 'financialAdvisor'
   | 'realStateAgent'
-  | 'structuralSurvey';
+  | 'structuralSurvey'
+  // Derived from the price/loan rather than typed, but still optional: a
+  // first-time-buyer exemption, no bank guarantee, or an NHG-ineligible
+  // purchase all zero these out.
+  | 'transferTax'
+  | 'bankGuarantee'
+  | 'nhg';
+
+export const TOGGLEABLE_COSTS: ReadonlyArray<ToggleableCost> = [
+  'notary',
+  'valuation',
+  'financialAdvisor',
+  'realStateAgent',
+  'structuralSurvey',
+  'transferTax',
+  'bankGuarantee',
+  'nhg',
+];
 
 export type AppState = {
   // mortgage
@@ -29,6 +54,7 @@ export type AppState = {
   deduction: number;
   savings: number;
   rent: number;
+  termYears: number;
 
   // costs
   notary: number;
@@ -40,6 +66,8 @@ export type AppState = {
 
   // overpayment simulator
   overpaymentMonthly: number;
+  overpaymentYearly: number;
+  overpaymentYearlyMonth: number;
   overpaymentLumpSumMonth: number;
   overpaymentLumpSumAmount: number;
 };
@@ -53,8 +81,31 @@ const URL_SYNCED_FIELDS = [
   'deduction',
   'savings',
   'rent',
+  'termYears',
   'overpaymentMonthly',
+  'overpaymentYearly',
+  'overpaymentYearlyMonth',
+  'overpaymentLumpSumAmount',
+  'overpaymentLumpSumMonth',
+  'notary',
+  'valuation',
+  'financialAdvisor',
+  'realStateAgent',
+  'structuralSurvey',
 ] as const;
+
+// Only the switched-*off* costs go in the URL, so the common case (everything
+// included) adds nothing to the link.
+const COSTS_OFF_PARAM = 'costsOff';
+
+function readCostsEnabled(params: URLSearchParams): Record<ToggleableCost, boolean> {
+  const off = new Set(
+    (params.get(COSTS_OFF_PARAM) ?? '').split(',').filter(Boolean),
+  );
+  return Object.fromEntries(
+    TOGGLEABLE_COSTS.map((cost) => [cost, !off.has(cost)]),
+  ) as Record<ToggleableCost, boolean>;
+}
 
 function readNumberParam(
   params: URLSearchParams,
@@ -70,20 +121,29 @@ function readNumberParam(
 // Bounds for user-entered fields: without these, a negative price/savings/rate
 // silently drives the loan and amortization schedule negative with no error.
 const FIELD_BOUNDS: Partial<
-  Record<keyof AppState, { min: number; max?: number }>
+  Record<keyof AppState, { min: number; max?: number; integer?: boolean }>
 > = {
   price: { min: 0 },
   savings: { min: 0 },
   rent: { min: 0 },
   interest: { min: 0, max: 20 },
   deduction: { min: 0, max: 100 },
+  termYears: { min: MIN_TERM_YEARS, max: MAX_TERM_YEARS, integer: true },
   notary: { min: 0 },
   valuation: { min: 0 },
   financialAdvisor: { min: 0 },
   realStateAgent: { min: 0 },
   structuralSurvey: { min: 0 },
   overpaymentMonthly: { min: 0 },
-  overpaymentLumpSumMonth: { min: 0, max: 360 },
+  overpaymentYearly: { min: 0 },
+  overpaymentYearlyMonth: { min: 1, max: MONTHS_PER_YEAR, integer: true },
+  // Upper bound is the longest schedule the term allows; the lump-sum month is
+  // additionally capped against the *current* term in handleChange.
+  overpaymentLumpSumMonth: {
+    min: 0,
+    max: MAX_TERM_YEARS * MONTHS_PER_YEAR,
+    integer: true,
+  },
   overpaymentLumpSumAmount: { min: 0 },
 };
 
@@ -93,6 +153,7 @@ function clampField(field: string, value: number): number {
   if (!bounds) return value;
   let clamped = Math.max(value, bounds.min);
   if (bounds.max !== undefined) clamped = Math.min(clamped, bounds.max);
+  if (bounds.integer) clamped = Math.round(clamped);
   return clamped;
 }
 
@@ -105,64 +166,59 @@ const App = () => {
       deduction: readNumberParam(params, 'deduction', 36.93),
       savings: readNumberParam(params, 'savings', 40000),
       rent: readNumberParam(params, 'rent', 1600),
+      termYears: clampField(
+        'termYears',
+        readNumberParam(params, 'termYears', DEFAULT_TERM_YEARS),
+      ),
       overpaymentMonthly: readNumberParam(params, 'overpaymentMonthly', 0),
+      overpaymentYearly: readNumberParam(params, 'overpaymentYearly', 0),
+      overpaymentYearlyMonth: clampField(
+        'overpaymentYearlyMonth',
+        readNumberParam(
+          params,
+          'overpaymentYearlyMonth',
+          DEFAULT_YEARLY_OVERPAYMENT_MONTH,
+        ),
+      ),
       overpaymentLumpSumMonth: 0,
       overpaymentLumpSumAmount: 0,
 
-      notary: 1200,
-      valuation: 800,
-      financialAdvisor: 2500,
-      realStateAgent: 2750 * 1.21,
-      structuralSurvey: 800,
-      costEnabled: {
-        notary: true,
-        valuation: true,
-        financialAdvisor: true,
-        realStateAgent: true,
-        structuralSurvey: true,
-      },
+      notary: readNumberParam(params, 'notary', 1200),
+      valuation: readNumberParam(params, 'valuation', 800),
+      financialAdvisor: readNumberParam(params, 'financialAdvisor', 2500),
+      realStateAgent: readNumberParam(params, 'realStateAgent', 2750 * 1.21),
+      structuralSurvey: readNumberParam(params, 'structuralSurvey', 800),
+      costEnabled: readCostsEnabled(params),
     };
   });
+
+  const termMonths = state.termYears * MONTHS_PER_YEAR;
 
   const [tab, setTab] = useState<TableTabs>('annuity');
   const [infoTab, setInfoTab] = useState<InfoTabs>('mortgage');
   const [linkCopied, setLinkCopied] = useState(false);
 
-  // Costs a buyer opted out of shouldn't count toward the loan/total —
-  // zero them out before the calculation instead of teaching Formulas.tsx
-  // about toggles, keeping the calculation engine pure and its tests untouched.
-  const effectiveState = useMemo(
-    () => ({
-      ...state,
-      notary: state.costEnabled.notary ? state.notary : 0,
-      valuation: state.costEnabled.valuation ? state.valuation : 0,
-      financialAdvisor: state.costEnabled.financialAdvisor
-        ? state.financialAdvisor
-        : 0,
-      realStateAgent: state.costEnabled.realStateAgent
-        ? state.realStateAgent
-        : 0,
-      structuralSurvey: state.costEnabled.structuralSurvey
-        ? state.structuralSurvey
-        : 0,
-    }),
-    [state],
-  );
-
   const { loan, cost, percentage } = useMemo(
-    () => calgulateLoanFigures(effectiveState),
-    [effectiveState],
+    () => calgulateLoanFigures(state),
+    [state],
   );
 
   // undefined (not a zeroed object) when there's nothing to apply, so the
   // main schedule keeps using the plain, pre-overpayment calculation path.
   const overpayment: OverpaymentType | undefined = useMemo(() => {
     const hasMonthly = state.overpaymentMonthly > 0;
+    const hasYearly = state.overpaymentYearly > 0;
     const hasLumpSum =
       state.overpaymentLumpSumAmount > 0 && state.overpaymentLumpSumMonth > 0;
-    if (!hasMonthly && !hasLumpSum) return undefined;
+    if (!hasMonthly && !hasYearly && !hasLumpSum) return undefined;
     return {
       monthly: state.overpaymentMonthly,
+      yearly: hasYearly
+        ? {
+            amount: state.overpaymentYearly,
+            monthOfYear: state.overpaymentYearlyMonth,
+          }
+        : undefined,
       lumpSum: hasLumpSum
         ? {
             month: state.overpaymentLumpSumMonth,
@@ -172,6 +228,8 @@ const App = () => {
     };
   }, [
     state.overpaymentMonthly,
+    state.overpaymentYearly,
+    state.overpaymentYearlyMonth,
     state.overpaymentLumpSumMonth,
     state.overpaymentLumpSumAmount,
   ]);
@@ -183,9 +241,17 @@ const App = () => {
         state.deduction,
         state.savings,
         loan,
+        termMonths,
         overpayment,
       ),
-    [state.interest, state.deduction, state.savings, loan, overpayment],
+    [
+      state.interest,
+      state.deduction,
+      state.savings,
+      loan,
+      termMonths,
+      overpayment,
+    ],
   );
 
   const annuity = useMemo(
@@ -195,17 +261,31 @@ const App = () => {
         state.deduction,
         state.savings,
         loan,
+        termMonths,
         overpayment,
       ),
-    [state.interest, state.deduction, state.savings, loan, overpayment],
+    [
+      state.interest,
+      state.deduction,
+      state.savings,
+      loan,
+      termMonths,
+      overpayment,
+    ],
   );
 
   // Baseline (no overpayment) schedules, kept only to power the "interest
   // saved" comparison on the Overpayment tab.
   const linearBaseline = useMemo(
     () =>
-      calculateLinearData(state.interest, state.deduction, state.savings, loan),
-    [state.interest, state.deduction, state.savings, loan],
+      calculateLinearData(
+        state.interest,
+        state.deduction,
+        state.savings,
+        loan,
+        termMonths,
+      ),
+    [state.interest, state.deduction, state.savings, loan, termMonths],
   );
 
   const annuityBaseline = useMemo(
@@ -215,22 +295,66 @@ const App = () => {
         state.deduction,
         state.savings,
         loan,
+        termMonths,
       ),
-    [state.interest, state.deduction, state.savings, loan],
+    [state.interest, state.deduction, state.savings, loan, termMonths],
+  );
+
+  const annuityBreaches = useMemo(
+    () => findAnnualOverpaymentBreaches(annuity.monthly, loan),
+    [annuity.monthly, loan],
+  );
+
+  const linearBreaches = useMemo(
+    () => findAnnualOverpaymentBreaches(linear.monthly, loan),
+    [linear.monthly, loan],
   );
 
   const annuityBreakEvenMonth = useMemo(
-    () => calculateBreakEvenMonth(annuity.monthly, cost, state.rent),
-    [annuity.monthly, cost, state.rent],
+    () => calculateBreakEvenMonth(annuity.monthly, state.savings, state.rent),
+    [annuity.monthly, state.savings, state.rent],
   );
 
   const linearBreakEvenMonth = useMemo(
-    () => calculateBreakEvenMonth(linear.monthly, cost, state.rent),
-    [linear.monthly, cost, state.rent],
+    () => calculateBreakEvenMonth(linear.monthly, state.savings, state.rent),
+    [linear.monthly, state.savings, state.rent],
   );
 
   function handleChange(field: string, value: number) {
-    setState((prev) => ({ ...prev, [field]: clampField(field, value) }));
+    setState((prev) => {
+      const next = { ...prev, [field]: clampField(field, value) };
+      // A lump sum scheduled past the end of the term would silently never be
+      // applied, so keep it inside the schedule as the term shrinks (and when
+      // the month itself is edited).
+      const maxLumpSumMonth = next.termYears * MONTHS_PER_YEAR;
+      next.overpaymentLumpSumMonth = Math.min(
+        next.overpaymentLumpSumMonth,
+        maxLumpSumMonth,
+      );
+      return next;
+    });
+  }
+
+  // Derived, never stored: a separate "all costs" flag would be a second
+  // source of truth for the same thing and could drift out of sync with the
+  // individual switches on the Purchase Costs tab.
+  const allCostsEnabled = TOGGLEABLE_COSTS.every(
+    (cost) => state.costEnabled[cost],
+  );
+  const someCostsEnabled = TOGGLEABLE_COSTS.some(
+    (cost) => state.costEnabled[cost],
+  );
+
+  // Native checkbox semantics: clicking an indeterminate box checks it, so a
+  // mixed state fills in the gaps and only a fully-on state clears everything.
+  function handleToggleAllCosts() {
+    const enabled = !allCostsEnabled;
+    setState((prev) => ({
+      ...prev,
+      costEnabled: Object.fromEntries(
+        TOGGLEABLE_COSTS.map((cost) => [cost, enabled]),
+      ) as Record<ToggleableCost, boolean>,
+    }));
   }
 
   function handleToggleCost(field: ToggleableCost, enabled: boolean) {
@@ -251,6 +375,8 @@ const App = () => {
     URL_SYNCED_FIELDS.forEach((field) =>
       params.set(field, String(state[field])),
     );
+    const off = TOGGLEABLE_COSTS.filter((cost) => !state.costEnabled[cost]);
+    if (off.length > 0) params.set(COSTS_OFF_PARAM, off.join(','));
     const search = '?' + params.toString();
     // replaceState (not pushState) so editing fields doesn't spam browser history.
     if (window.location.search !== search) {
@@ -260,10 +386,10 @@ const App = () => {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-      <header className="mb-6 flex flex-col gap-4 rounded-lg bg-brand-400 px-6 py-8 text-white shadow-sm sm:flex-row sm:items-start sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 rounded-lg bg-accent px-6 py-8 text-white shadow-sm sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl">Mortgage Calculator</h1>
-          <p className="mt-1 text-brand-100">
+          <p className="mt-1 text-white">
             Annuity and Linear mortgage calculator for the Netherlands
           </p>
         </div>
@@ -277,7 +403,7 @@ const App = () => {
       </header>
 
       <section className="mb-8">
-        <h2 className="mb-2 text-lg font-semibold text-brand-500">Mortgage</h2>
+        <h2 className="mb-2 text-xl font-semibold text-brand-500">Mortgage</h2>
         <Tabs
           label="Mortgage sections"
           active={infoTab}
@@ -300,6 +426,11 @@ const App = () => {
               percentage={percentage}
               deduction={state.deduction}
               rent={state.rent}
+              termYears={state.termYears}
+              termMonths={termMonths}
+              allCostsEnabled={allCostsEnabled}
+              someCostsEnabled={someCostsEnabled}
+              onToggleAllCosts={handleToggleAllCosts}
               annuity={annuity.totals}
               linear={linear.totals}
               annuityBreakEvenMonth={annuityBreakEvenMonth}
@@ -326,8 +457,14 @@ const App = () => {
           <TabPanel value="overpayment" active={infoTab}>
             <Overpayment
               monthly={state.overpaymentMonthly}
+              yearly={state.overpaymentYearly}
+              yearlyMonth={state.overpaymentYearlyMonth}
               lumpSumMonth={state.overpaymentLumpSumMonth}
               lumpSumAmount={state.overpaymentLumpSumAmount}
+              termMonths={termMonths}
+              loan={loan}
+              annuityBreaches={annuityBreaches}
+              linearBreaches={linearBreaches}
               onChange={handleChange}
               annuity={annuity.totals}
               annuityBaseline={annuityBaseline.totals}
@@ -339,7 +476,7 @@ const App = () => {
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-2 text-lg font-semibold text-brand-500">
+        <h2 className="mb-2 text-xl font-semibold text-brand-500">
           Mortgage Structure
         </h2>
         <Tabs
@@ -365,7 +502,7 @@ const App = () => {
         </div>
       </section>
 
-      <section className="mb-6 rounded-lg border border-brand-100 bg-white p-4 text-sm text-brand-400 shadow-sm">
+      <section className="mb-6 rounded-lg border border-brand-100 bg-white p-4 text-base text-brand-400 shadow-sm">
         <h3 className="mb-1 font-semibold text-brand-500">Disclaimer</h3>
         <p>This calculator is for illustrative purposes only.</p>
         <p>No guarantee is made for the accuracy of the data provided.</p>
@@ -374,7 +511,7 @@ const App = () => {
 
       <footer>
         <a
-          href="https://github.com/santiago-pan/mortgage-calculator"
+          href="https://github.com/InHouse-Banana/mortgage-calculator-nl"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 rounded-md border border-brand-200 px-3 py-1.5 text-sm text-brand-500 transition-colors hover:border-brand-300 hover:text-brand-600"

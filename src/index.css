@@ -4,15 +4,31 @@
 @theme {
   --font-sans: 'Nunito', sans-serif;
 
-  --color-brand-50: #f4f4f6;
-  --color-brand-100: #dadbdf;
-  --color-brand-200: #c2c5cc;
-  --color-brand-300: #9095a3;
-  --color-brand-400: #6b717f;
-  --color-brand-500: #565b67;
-  --color-brand-600: #43474f;
+  /* Warm terracotta, derived from the blue-grey scale it replaced by matching
+     relative luminance, then deepened: steps 300-600 carry text, so they are
+     darkened ~20-26% for extra contrast against the light canvas.
+     Verified in src/__tests__/theme-test.ts. */
+  --color-brand-50: #faf3ee;
+  --color-brand-100: #f1d7c3;
+  --color-brand-200: #e4ba9a;
+  --color-brand-300: #be753c;
+  --color-brand-400: #915629;
+  --color-brand-500: #76431c;
+  --color-brand-600: #5c3313;
 
-  --color-canvas: #eff0eb;
+  --color-canvas: #f5efe8;
+
+  /* Header block. Vivid orange rather than a brand step, because the brand
+     steps double as text colours and this saturation is unreadable as type.
+     Held at luminance 0.175 so plain white clears AA on it. */
+  --color-accent: #b85a08;
+
+  /* Chart series. Deliberately outside the brand hue so the lines stay legible
+     against a warm UI, and spread in luminance as well as hue so they remain
+     separable in greyscale and for red-green colour blindness. */
+  --color-chart-gross: #593893;
+  --color-chart-capital: #297b76;
+  --color-chart-interest: #c48320;
 }
 
 body {

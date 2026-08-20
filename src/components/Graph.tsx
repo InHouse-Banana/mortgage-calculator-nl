@@ -10,6 +10,7 @@ import {
   YAxis,
 } from 'recharts';
 import { MonthMortgageData } from '../common/Types';
+import { formatEuro } from '../common/format';
 
 type GraphProps = {
   annuity: Array<MonthMortgageData>;
@@ -30,9 +31,9 @@ export function Graph(props: GraphProps) {
     };
   });
 
-  const stroke1 = '#8884d8';
-  const stroke2 = '#82ca9d';
-  const stroke3 = '#ff7300';
+  const stroke1 = 'var(--color-chart-gross)';
+  const stroke2 = 'var(--color-chart-capital)';
+  const stroke3 = 'var(--color-chart-interest)';
 
   return (
     <div className="rounded-lg border border-brand-100 bg-white p-4 shadow-sm">
@@ -42,8 +43,11 @@ export function Graph(props: GraphProps) {
           margin={{ top: 10, right: 20, left: 10, bottom: 5 }}
         >
           <XAxis dataKey="month" />
-          <YAxis unit="€" />
-          <Tooltip />
+          <YAxis tickFormatter={formatEuro} />
+          <Tooltip
+            formatter={(value) => formatEuro(Number(value))}
+            labelFormatter={(month) => `Month ${month}`}
+          />
           <Legend />
           <CartesianGrid strokeDasharray="3 3" />
 

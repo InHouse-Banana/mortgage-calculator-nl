@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 import { InfoTooltip } from './InfoTooltip';
 
@@ -10,9 +10,19 @@ type InputFieldProps = {
   onChange: (value: string) => void;
   disabled?: boolean;
   info?: string;
+  /**
+   * Digits shown after the decimal point. Defaults to 0 for money (cents are
+   * noise on figures this size) and 2 otherwise, so rates keep their precision.
+   * Display only — state and the calculation engine keep full precision.
+   */
+  decimals?: number;
   toggle?: {
     checked: boolean;
     onChange: (checked: boolean) => void;
+    /** Renders the dash state — some, but not all, of what this controls is on. */
+    indeterminate?: boolean;
+    /** Overrides the default `Include {title} in total` accessible name. */
+    label?: string;
   };
 };
 
@@ -24,19 +34,47 @@ export function InputField({
   onChange,
   disabled,
   info,
+  decimals,
   toggle,
 }: InputFieldProps) {
+  const isMoney = prepend === '€' || append === '€';
+  const decimalScale = decimals ?? (isMoney ? 0 : 2);
   const id = useId();
+
+  // NumericFormat holds what you type until blur, so the committed value and
+  // the displayed one can diverge. Mirror it in local state and re-sync from
+  // the prop, otherwise an entry the parent clamps back to the value it
+  // already had (e.g. typing 99 into a 1-12 field already showing 12) stays on
+  // screen while every figure below is computed from the clamped number.
+  // `indeterminate` is a DOM property with no HTML attribute, so it can only
+  // be set imperatively.
+  const toggleRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (toggleRef.current) {
+      toggleRef.current.indeterminate = toggle?.indeterminate ?? false;
+    }
+  }, [toggle?.indeterminate]);
+
+  const [draft, setDraft] = useState<string | number>(value);
+  const [committed, setCommitted] = useState<string | number>(value);
+
+  // Adjust-state-during-render rather than in an effect: no extra paint, and
+  // no cascading-render lint error.
+  if (value !== committed) {
+    setCommitted(value);
+    setDraft(value);
+  }
 
   return (
     <div className={toggle && !toggle.checked ? 'opacity-50' : undefined}>
-      <div className="mb-1 flex items-center gap-1.5 text-sm text-brand-400">
+      <div className="mb-1 flex items-center gap-1.5 text-base text-brand-400">
         {toggle && (
           <input
+            ref={toggleRef}
             type="checkbox"
             checked={toggle.checked}
             onChange={(e) => toggle.onChange(e.target.checked)}
-            aria-label={`Include ${title} in total`}
+            aria-label={toggle.label ?? `Include ${title} in total`}
             className="h-3.5 w-3.5 rounded border-brand-300 text-brand-400 focus:ring-2 focus:ring-brand-200"
           />
         )}
@@ -57,12 +95,16 @@ export function InputField({
         <NumericFormat
           id={id}
           inputMode="decimal"
-          decimalScale={2}
+          decimalScale={decimalScale}
           thousandSeparator
-          value={value}
+          value={draft}
           disabled={disabled}
+          onValueChange={(values) => setDraft(values.value)}
           onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
             onChange(e.currentTarget.value.replace(/,/g, ''));
+            // When the clamp lands back on the current value the prop never
+            // changes, so the effect above won't fire — reset the display here.
+            setDraft(value);
           }}
           className={
             'w-full rounded-md border py-2 text-sm tabular-nums transition-colors ' +

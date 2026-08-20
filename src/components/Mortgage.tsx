@@ -1,7 +1,8 @@
 import React from 'react';
 import { InputField } from './InputField';
-import { Card } from './Card';
+import { Card, CardSection } from './Card';
 import { glossary } from '../common/glossary';
+import { effectiveAnnualRate } from '../common/Formulas';
 
 type Totals = {
   totalPaidGross: number;
@@ -21,20 +22,32 @@ type Props = {
   percentage: number;
   deduction: number;
   rent: number;
+  termYears: number;
+  termMonths: number;
   annuity: Totals;
   linear: Totals;
   annuityBreakEvenMonth: number | null;
   linearBreakEvenMonth: number | null;
+  allCostsEnabled: boolean;
+  someCostsEnabled: boolean;
+  onToggleAllCosts: () => void;
   onChange: (field: string, value: number) => void;
 };
 
 type FieldSpec = {
   title: string;
-  prepend: string;
+  prepend?: string;
+  append?: string;
   value: number;
   field: string | null;
   disabled?: boolean;
   info?: string;
+  toggle?: {
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+    indeterminate?: boolean;
+    label?: string;
+  };
 };
 
 function Field({
@@ -49,8 +62,10 @@ function Field({
       disabled={spec.disabled}
       title={spec.title}
       prepend={spec.prepend}
+      append={spec.append}
       value={spec.value}
       info={spec.info}
+      toggle={spec.toggle}
       onChange={(value) => spec.field && onChange(spec.field, parseFloat(value))}
     />
   );
@@ -59,13 +74,15 @@ function Field({
 function BreakEvenField({
   title,
   month,
+  termYears,
 }: {
   title: string;
   month: number | null;
+  termYears: number;
 }) {
   return (
     <div>
-      <span className="mb-1 flex items-center gap-1.5 text-sm text-brand-400">
+      <span className="mb-1 flex items-center gap-1.5 text-base text-brand-400">
         {title}
         <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">
           computed
@@ -73,14 +90,14 @@ function BreakEvenField({
       </span>
       <div className="rounded-md border border-transparent bg-brand-50 px-3 py-2 text-sm text-brand-500">
         {month === null
-          ? 'Never within 30 years'
+          ? `Never within ${termYears} years`
           : `Month ${month} (year ${Math.ceil(month / 12)})`}
       </div>
     </div>
   );
 }
 
-function MortgageTypeCard({
+function MortgageTypeSection({
   title,
   info,
   totals,
@@ -90,7 +107,7 @@ function MortgageTypeCard({
   totals: Totals;
 }) {
   return (
-    <Card title={title} info={info}>
+    <CardSection title={title} info={info}>
       <Field
         spec={{ title: 'Total repaid (gross)', prepend: '€', value: totals.totalPaidGross, field: null, disabled: true }}
         onChange={() => {}}
@@ -115,7 +132,7 @@ function MortgageTypeCard({
         spec={{ title: 'Total invested (net)', prepend: '€', value: totals.totalInvestedNet, field: null, disabled: true }}
         onChange={() => {}}
       />
-    </Card>
+    </CardSection>
   );
 }
 
@@ -128,32 +145,54 @@ export function Mortgage(props: Props) {
         <Field spec={{ title: 'House price', prepend: '€', value: props.price, field: 'price' }} onChange={onChange} />
         <Field spec={{ title: 'Own savings', prepend: '€', value: props.savings, field: 'savings' }} onChange={onChange} />
         <Field spec={{ title: 'Interest', prepend: '%', value: props.interest, field: 'interest' }} onChange={onChange} />
+        <Field spec={{ title: 'Effective annual rate', prepend: '%', value: effectiveAnnualRate(props.interest), field: null, disabled: true, info: glossary.effectiveRate }} onChange={onChange} />
+        <Field spec={{ title: 'Mortgage term', append: 'years', value: props.termYears, field: 'termYears', info: glossary.term }} onChange={onChange} />
         <Field spec={{ title: 'Interest deduction', prepend: '%', value: props.deduction, field: 'deduction', info: glossary.interestDeduction }} onChange={onChange} />
         <Field spec={{ title: 'Current rent', prepend: '€', value: props.rent, field: 'rent' }} onChange={onChange} />
       </Card>
 
-      <Card title="Purchase summary">
-        <Field spec={{ title: 'Purchase cost', prepend: '€', value: props.cost, field: null, disabled: true }} onChange={onChange} />
+      <Card title="Purchase summary" collapsible>
+        <Field
+          spec={{
+            title: 'Purchase cost',
+            prepend: '€',
+            value: props.cost,
+            field: null,
+            disabled: true,
+            info: 'Switches every purchase cost at once. The Purchase Costs tab stays in step — untick lines there and this shows a dash.',
+            toggle: {
+              checked: props.allCostsEnabled,
+              indeterminate: !props.allCostsEnabled && props.someCostsEnabled,
+              label: 'Include all purchase costs in total',
+              onChange: props.onToggleAllCosts,
+            },
+          }}
+          onChange={onChange}
+        />
         <Field spec={{ title: 'Remaining = Savings - Cost', prepend: '€', value: props.savings - props.cost, field: null, disabled: true }} onChange={onChange} />
         <Field spec={{ title: 'Required loan', prepend: '€', value: props.loan, field: null, disabled: true }} onChange={onChange} />
         <Field spec={{ title: 'Loan / Price rate (%)', prepend: '%', value: props.percentage * 100, field: null, disabled: true, info: glossary.loanToPrice }} onChange={onChange} />
       </Card>
 
       <Card
-        title="Rent vs. buy (30 years)"
-        info="Break-even: the first month where what you've spent buying (upfront cost + payments so far) drops to or below what you'd have spent renting."
+        title={`Rent vs. buy (${props.termYears} years)`}
+        collapsible
+        defaultOpen={false}
+        info="Break-even: the first month where what you've spent buying — your own savings put in on day one, plus net payments so far — drops to or below what you'd have spent renting. Purchase costs are financed into the loan, so they are already inside the payments. Equity and house-price changes are not counted."
       >
-        <Field spec={{ title: 'Total invested on rent', prepend: '€', value: props.rent * 360, field: null, disabled: true }} onChange={onChange} />
-        <Field spec={{ title: 'Total rent - total cost (gross)', prepend: '€', value: props.rent * 360 - props.annuity.totalInvestedGross, field: null, disabled: true }} onChange={onChange} />
-        <Field spec={{ title: 'Total rent - total cost (net)', prepend: '€', value: props.rent * 360 - props.annuity.totalInvestedNet, field: null, disabled: true }} onChange={onChange} />
-        <BreakEvenField title="Break-even (Annuity)" month={props.annuityBreakEvenMonth} />
-        <BreakEvenField title="Break-even (Linear)" month={props.linearBreakEvenMonth} />
+        <Field spec={{ title: 'Total invested on rent', prepend: '€', value: props.rent * props.termMonths, field: null, disabled: true }} onChange={onChange} />
+        <Field spec={{ title: 'Total rent - total cost (gross)', prepend: '€', value: props.rent * props.termMonths - props.annuity.totalInvestedGross, field: null, disabled: true }} onChange={onChange} />
+        <Field spec={{ title: 'Total rent - total cost (net)', prepend: '€', value: props.rent * props.termMonths - props.annuity.totalInvestedNet, field: null, disabled: true }} onChange={onChange} />
+        <BreakEvenField title="Break-even (Annuity)" month={props.annuityBreakEvenMonth} termYears={props.termYears} />
+        <BreakEvenField title="Break-even (Linear)" month={props.linearBreakEvenMonth} termYears={props.termYears} />
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <MortgageTypeCard title="Annuity" info={glossary.annuity} totals={props.annuity} />
-        <MortgageTypeCard title="Linear" info={glossary.linear} totals={props.linear} />
-      </div>
+      <Card title="Annuity vs. Linear" collapsible defaultOpen={false} layout="plain">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <MortgageTypeSection title="Annuity" info={glossary.annuity} totals={props.annuity} />
+          <MortgageTypeSection title="Linear" info={glossary.linear} totals={props.linear} />
+        </div>
+      </Card>
     </div>
   );
 }

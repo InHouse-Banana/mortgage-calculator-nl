@@ -25,4 +25,16 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Fast Refresh is irrelevant in tests and in the pure calculation engine —
+    // neither is a component module.
+    files: [
+      '**/__tests__/**/*.{ts,tsx}',
+      '**/*-test.{ts,tsx}',
+      'src/common/**/*.{ts,tsx}',
+    ],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 );
