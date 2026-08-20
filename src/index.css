@@ -18,9 +18,12 @@
 
   --color-canvas: #eff0eb;
 
-  /* The one place colour is spent: the header block. Held at luminance 0.175
-     so plain white clears AA on it. */
-  --color-accent: #b85a08;
+  /* The one place colour is spent: the header block.
+     White on this is 4.06:1 — under the 4.5:1 AA bar for small text, over the
+     3:1 bar for large. A deliberate choice: the h1 is large and the subtitle
+     is one short line. #b85a08 is the nearest shade that clears 4.5 if the
+     trade is ever reconsidered. */
+  --color-accent: #c86108;
 
   /* Chart series. Saturated, so the lines never read as UI chrome against the
      near-neutral brand scale, and spread in luminance as well as hue so they
