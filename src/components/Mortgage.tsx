@@ -36,6 +36,8 @@ type Props = {
 
 type FieldSpec = {
   title: string;
+  /** Second line of the label, for a parenthetical that would otherwise wrap. */
+  titleNote?: string;
   prepend?: string;
   append?: string;
   value: number;
@@ -61,6 +63,7 @@ function Field({
     <InputField
       disabled={spec.disabled}
       title={spec.title}
+      titleNote={spec.titleNote}
       prepend={spec.prepend}
       append={spec.append}
       value={spec.value}
@@ -148,7 +151,7 @@ export function Mortgage(props: Props) {
         <Field spec={{ title: 'Effective annual rate', prepend: '%', value: effectiveAnnualRate(props.interest), field: null, disabled: true, info: glossary.effectiveRate }} onChange={onChange} />
         <Field spec={{ title: 'Mortgage term', append: 'years', value: props.termYears, field: 'termYears', info: glossary.term }} onChange={onChange} />
         <Field spec={{ title: 'Interest deduction', prepend: '%', value: props.deduction, field: 'deduction', info: glossary.interestDeduction }} onChange={onChange} />
-        <Field spec={{ title: 'Current rent', prepend: '€', value: props.rent, field: 'rent' }} onChange={onChange} />
+        <Field spec={{ title: 'Current rent', titleNote: '(used for the rent vs. buy comparison)', prepend: '€', value: props.rent, field: 'rent' }} onChange={onChange} />
       </Card>
 
       <Card title="Purchase summary" collapsible>

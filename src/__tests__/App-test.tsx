@@ -575,7 +575,7 @@ describe('euro amounts are shown to the nearest euro', () => {
     [
       'House price',
       'Own savings',
-      'Current rent',
+      'Current rent (used for the rent vs. buy comparison)',
       'Purchase cost',
       'Remaining = Savings - Cost',
       'Required loan',
@@ -1363,4 +1363,21 @@ describe('schedule downloads', () => {
 
     expect(screen.queryByRole('button', { name: 'Download CSV' })).toBeNull();
   });
+});
+
+it('says what the rent figure is used for', () => {
+  render(<App />);
+
+  const input = screen.getByLabelText(
+    'Current rent (used for the rent vs. buy comparison)',
+  );
+  const label = document.querySelector(`label[for="${input.id}"]`)!;
+
+  // The note is a second line, so the label never wraps mid-parenthetical.
+  const note = label.querySelector('span.block')!;
+  expect(note.textContent).toBe('(used for the rent vs. buy comparison)');
+
+  // Matches the card it points at, which is titled "Rent vs. buy (N years)".
+  expect(note.textContent).toContain('rent vs. buy');
+  expect(screen.getByRole('button', { name: /^Rent vs\. buy/ })).toBeInTheDocument();
 });
