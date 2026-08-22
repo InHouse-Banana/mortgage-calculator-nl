@@ -255,6 +255,7 @@ export function calgulateLoanFigures({
   financialAdvisor,
   realStateAgent,
   structuralSurvey,
+  otherCosts,
   savings,
   costEnabled,
 }: AppState): {
@@ -275,7 +276,10 @@ export function calgulateLoanFigures({
     (on('valuation') ? valuation : 0) +
     (on('financialAdvisor') ? financialAdvisor : 0) +
     (on('realStateAgent') ? realStateAgent : 0) +
-    (on('structuralSurvey') ? structuralSurvey : 0);
+    (on('structuralSurvey') ? structuralSurvey : 0) +
+    // Last in the sum on purpose: adding 0 to a float is exact, so a scenario
+    // that leaves this empty produces figures identical to before it existed.
+    (on('otherCosts') ? otherCosts : 0);
 
   const loan = Math.max(
     (price - savings + cost) / (nhgAvailable ? 1 - NHG_FEE : 1),

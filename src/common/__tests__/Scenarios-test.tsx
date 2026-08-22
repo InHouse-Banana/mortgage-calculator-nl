@@ -43,6 +43,7 @@ function baseState(overrides: Partial<AppState> = {}): AppState {
     financialAdvisor: 2500,
     realStateAgent: 3327.5,
     structuralSurvey: 800,
+    otherCosts: 0,
     savings: 50000,
     interest: 4.0,
     deduction: 36.93,
@@ -57,6 +58,7 @@ function baseState(overrides: Partial<AppState> = {}): AppState {
       transferTax: true,
       bankGuarantee: true,
       nhg: true,
+      otherCosts: true,
     },
     overpaymentMonthly: 0,
     overpaymentYearly: 0,
@@ -314,6 +316,7 @@ describe('Dutch purchase costs behave correctly', () => {
         transferTax: false,
         bankGuarantee: false,
         nhg: false,
+        otherCosts: false,
       },
     });
 
@@ -401,6 +404,7 @@ describe('rent-vs-buy break-even counts the money actually out of pocket', () =>
       transferTax: false,
       bankGuarantee: false,
       nhg: false,
+      otherCosts: false,
     },
   });
 
@@ -586,5 +590,56 @@ describe('the effective-rate tooltip states true numbers', () => {
   it('agrees that 6% nominal is 0.5% a month', () => {
     const data = calculateAnnuityData(6, 0, 0, 10000, 12);
     expect(data.monthly[0].interest).toBeCloseTo(10000 * 0.005, 9);
+  });
+});
+
+describe('other costs', () => {
+  it('changes nothing when left empty', () => {
+    const withField = calgulateLoanFigures(baseState({ otherCosts: 0 }));
+    const disabled = calgulateLoanFigures(
+      baseState({
+        otherCosts: 5000,
+        costEnabled: { ...baseState().costEnabled, otherCosts: false },
+      }),
+    );
+
+    // Adding zero to a float sum is exact, so an untouched field cannot shift
+    // any figure by even a fraction of a cent.
+    expect(disabled).toEqual(withField);
+  });
+
+  it('raises the purchase cost by exactly what you enter', () => {
+    const before = calgulateLoanFigures(baseState({ price: 500000 }));
+    const after = calgulateLoanFigures(
+      baseState({ price: 500000, otherCosts: 7500 }),
+    );
+
+    // Above the NHG cap, so nothing is grossed up and the arithmetic is direct.
+    expect(after.cost - before.cost).toBeCloseTo(7500, 6);
+    expect(after.loan - before.loan).toBeCloseTo(7500, 6);
+  });
+
+  it('is financed into the loan, like every other cost', () => {
+    const state = baseState({ price: 350000, savings: 40000, otherCosts: 10000 });
+    const { loan, cost } = calgulateLoanFigures(state);
+
+    // Under the NHG cap the loan is grossed up, so it rises by more than the
+    // 10,000 itself — the same treatment the notary and valuation get.
+    const without = calgulateLoanFigures({ ...state, otherCosts: 0 });
+    expect(loan - without.loan).toBeGreaterThan(10000);
+    expect(cost - without.cost).toBeGreaterThan(10000);
+  });
+
+  it('drops out entirely when switched off', () => {
+    const on = calgulateLoanFigures(baseState({ otherCosts: 12345 }));
+    const off = calgulateLoanFigures(
+      baseState({
+        otherCosts: 12345,
+        costEnabled: { ...baseState().costEnabled, otherCosts: false },
+      }),
+    );
+
+    expect(off.cost).toBeLessThan(on.cost);
+    expect(off).toEqual(calgulateLoanFigures(baseState({ otherCosts: 0 })));
   });
 });

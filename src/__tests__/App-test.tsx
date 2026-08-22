@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import App from '../App';
+import App, { TOGGLEABLE_COSTS } from '../App';
 
 // The amortization table has a header row plus one row per month.
 function scheduleMonths() {
@@ -281,6 +281,7 @@ describe('purchase costs', () => {
       'Financial advisor',
       'Real estate agent',
       'Structural survey',
+      'Other costs',
     ]) {
       await user.click(screen.getByLabelText(`Include ${label} in total`));
     }
@@ -418,6 +419,7 @@ describe('master purchase-costs toggle', () => {
     'Financial advisor',
     'Real estate agent',
     'Structural survey',
+    'Other costs',
   ];
 
   const master = () => screen.getByLabelText('Include all purchase costs in total');
@@ -531,7 +533,8 @@ describe('master purchase-costs toggle', () => {
     window.history.replaceState(
       null,
       '',
-      '?costsOff=transferTax,bankGuarantee,nhg,notary,valuation,financialAdvisor,realStateAgent,structuralSurvey',
+      '?costsOff=transferTax,bankGuarantee,nhg,notary,valuation,' +
+        'financialAdvisor,realStateAgent,structuralSurvey,otherCosts',
     );
     const user = userEvent.setup();
     render(<App />);
@@ -555,7 +558,7 @@ describe('master purchase-costs toggle', () => {
     await user.click(master());
 
     const off = new URLSearchParams(window.location.search).get('costsOff')!.split(',');
-    expect(off).toHaveLength(8);
+    expect(off).toHaveLength(9);
 
     // A link built from that state comes back fully off.
     const search = window.location.search;
@@ -1380,4 +1383,89 @@ it('says what the rent figure is used for', () => {
   // Matches the card it points at, which is titled "Rent vs. buy (N years)".
   expect(note.textContent).toContain('rent vs. buy');
   expect(screen.getByRole('button', { name: /^Rent vs\. buy/ })).toBeInTheDocument();
+});
+
+describe('other costs field', () => {
+  async function goToCosts() {
+    await userEvent.setup().click(
+      screen.getByRole('tab', { name: 'Purchase Costs' }),
+    );
+  }
+
+  const euro = (label: string) =>
+    Number(screen.getByLabelText(label).getAttribute('value')!.replace(/,/g, ''));
+
+  it('starts empty, so it changes nothing until used', async () => {
+    render(<App />);
+    const before = euro('Purchase cost');
+
+    await goToCosts();
+    expect(screen.getByLabelText(/^Other costs/)).toHaveValue('0');
+    expect(screen.getByLabelText('Include Other costs in total')).toBeChecked();
+
+    await userEvent.setup().click(screen.getByRole('tab', { name: 'Mortgage' }));
+    expect(euro('Purchase cost')).toBe(before);
+  });
+
+  it('adds what you enter to the purchase cost', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const before = euro('Purchase cost');
+
+    await goToCosts();
+    const field = screen.getByLabelText(/^Other costs/);
+    await user.clear(field);
+    await user.type(field, '7500');
+    await user.tab();
+
+    await user.click(screen.getByRole('tab', { name: 'Mortgage' }));
+    expect(euro('Purchase cost')).toBeGreaterThan(before);
+  });
+
+  it('round-trips through the URL', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await goToCosts();
+
+    const field = screen.getByLabelText(/^Other costs/);
+    await user.clear(field);
+    await user.type(field, '4200');
+    await user.tab();
+
+    expect(new URLSearchParams(window.location.search).get('otherCosts')).toBe('4200');
+  });
+
+  it('restores from the URL', async () => {
+    window.history.replaceState(null, '', '?otherCosts=4200');
+    render(<App />);
+    await goToCosts();
+
+    expect(screen.getByLabelText(/^Other costs/)).toHaveValue('4,200');
+  });
+
+  it('answers to the master toggle with the rest', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, '', '?otherCosts=4200');
+    render(<App />);
+
+    await user.click(screen.getByLabelText('Include all purchase costs in total'));
+    expect(euro('Purchase cost')).toBe(0);
+
+    await goToCosts();
+    expect(screen.getByLabelText('Include Other costs in total')).not.toBeChecked();
+  });
+});
+
+it('renders a toggle for every cost the model knows about', async () => {
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(screen.getByRole('tab', { name: 'Purchase Costs' }));
+
+  // Guards against a cost being added to the model but not the UI, or the
+  // other way round — the master toggle depends on the two agreeing.
+  const toggles = screen
+    .getAllByRole('checkbox')
+    .filter((box) => box.getAttribute('aria-label')?.startsWith('Include '));
+
+  expect(toggles).toHaveLength(TOGGLEABLE_COSTS.length);
 });

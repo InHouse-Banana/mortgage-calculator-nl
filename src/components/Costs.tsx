@@ -15,6 +15,7 @@ type Props = {
   financialAdvisor: number;
   realStateAgent: number;
   structuralSurvey: number;
+  otherCosts: number;
   costEnabled: Record<ToggleableCost, boolean>;
   onChange: (field: string, value: number) => void;
   onToggle: (field: ToggleableCost, enabled: boolean) => void;
@@ -73,6 +74,15 @@ export function Costs(props: Props) {
         value={props.structuralSurvey}
         toggle={toggle('structuralSurvey')}
         onChange={(value) => props.onChange('structuralSurvey', parseFloat(value))}
+      />
+      <InputField
+        title="Other costs"
+        titleNote="(anything not listed above)"
+        prepend="€"
+        value={props.otherCosts}
+        toggle={toggle('otherCosts')}
+        info={glossary.otherCosts}
+        onChange={(value) => props.onChange('otherCosts', parseFloat(value))}
       />
     </Card>
   );

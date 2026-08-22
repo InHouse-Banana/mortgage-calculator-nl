@@ -37,7 +37,10 @@ export type ToggleableCost =
   // purchase all zero these out.
   | 'transferTax'
   | 'bankGuarantee'
-  | 'nhg';
+  | 'nhg'
+  // Catch-all for anything this list does not name: kitchen, movers, ground
+  // rent buy-off, whatever the purchase happens to involve.
+  | 'otherCosts';
 
 export const TOGGLEABLE_COSTS: ReadonlyArray<ToggleableCost> = [
   'notary',
@@ -48,6 +51,7 @@ export const TOGGLEABLE_COSTS: ReadonlyArray<ToggleableCost> = [
   'transferTax',
   'bankGuarantee',
   'nhg',
+  'otherCosts',
 ];
 
 export type AppState = {
@@ -65,6 +69,7 @@ export type AppState = {
   financialAdvisor: number;
   realStateAgent: number;
   structuralSurvey: number;
+  otherCosts: number;
   costEnabled: Record<ToggleableCost, boolean>;
 
   // overpayment simulator
@@ -95,6 +100,7 @@ const URL_SYNCED_FIELDS = [
   'financialAdvisor',
   'realStateAgent',
   'structuralSurvey',
+  'otherCosts',
 ] as const;
 
 // Only the switched-*off* costs go in the URL, so the common case (everything
@@ -137,6 +143,7 @@ const FIELD_BOUNDS: Partial<
   financialAdvisor: { min: 0 },
   realStateAgent: { min: 0 },
   structuralSurvey: { min: 0 },
+  otherCosts: { min: 0 },
   overpaymentMonthly: { min: 0 },
   overpaymentYearly: { min: 0 },
   overpaymentYearlyMonth: { min: 1, max: MONTHS_PER_YEAR, integer: true },
@@ -191,6 +198,7 @@ const App = () => {
       financialAdvisor: readNumberParam(params, 'financialAdvisor', 2500),
       realStateAgent: readNumberParam(params, 'realStateAgent', 2750 * 1.21),
       structuralSurvey: readNumberParam(params, 'structuralSurvey', 800),
+      otherCosts: readNumberParam(params, 'otherCosts', 0),
       costEnabled: readCostsEnabled(params),
     };
   });

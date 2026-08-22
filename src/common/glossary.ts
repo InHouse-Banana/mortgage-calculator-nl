@@ -45,6 +45,10 @@ Paying earlier in the year saves more interest, because the money works against 
 
 This calculator warns when you exceed it, but never caps what you enter, and it does not model the fee itself. Check your own mortgage terms.`,
 
+  otherCosts: `Anything the list above does not cover — a kitchen, movers, buying off the ground lease (afkoop erfpacht), a bank's arrangement fee, or a renovation you are financing with the purchase.
+
+It is treated exactly like the other costs: added to the total and financed into the loan, so it raises what you borrow rather than what you pay on the day.`,
+
   transferTax: `Overdrachtsbelasting: a one-off Dutch tax on the purchase price, paid at the notary.
 
 Modelled here at 2%. First-time buyers under 35 may be exempt — switch it off to see that scenario.`,
