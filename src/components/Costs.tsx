@@ -16,9 +16,13 @@ type Props = {
   realStateAgent: number;
   structuralSurvey: number;
   otherCosts: number;
+  cost: number;
   costEnabled: Record<ToggleableCost, boolean>;
+  allCostsEnabled: boolean;
+  someCostsEnabled: boolean;
   onChange: (field: string, value: number) => void;
   onToggle: (field: ToggleableCost, enabled: boolean) => void;
+  onToggleAllCosts: () => void;
 };
 
 export function Costs(props: Props) {
@@ -37,6 +41,20 @@ export function Costs(props: Props) {
 
   return (
     <Card title="Purchase costs">
+      <InputField
+        title="Enable purchase costs"
+        valueLabel="Total purchase cost"
+        prepend="€"
+        disabled
+        value={props.cost}
+        toggle={{
+          checked: props.allCostsEnabled,
+          indeterminate: !props.allCostsEnabled && props.someCostsEnabled,
+          label: 'Enable purchase costs',
+          onChange: props.onToggleAllCosts,
+        }}
+        onChange={() => {}}
+      />
       <InputField title="Transfer tax" prepend="€" disabled value={transferTax} toggle={toggle('transferTax')} onChange={() => {}} info={glossary.transferTax} />
       <InputField
         title="Valuation"

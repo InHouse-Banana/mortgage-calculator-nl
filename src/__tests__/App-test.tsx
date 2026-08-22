@@ -252,7 +252,7 @@ describe('purchase costs', () => {
   const purchaseCost = () =>
     Number(
       screen
-        .getByLabelText('Purchase cost')
+        .getByLabelText('Total purchase cost')
         .getAttribute('value')!
         .replace(/,/g, ''),
     );
@@ -364,10 +364,10 @@ describe('purchase costs', () => {
 });
 
 describe('collapsible cards', () => {
-  // Purchase summary is open on arrival; the two detail cards start closed so
+  // Purchase cost is open on arrival; the two detail cards start closed so
   // the page opens on the inputs and the headline figures.
   it.each([
-    ['Purchase summary', true],
+    ['Purchase cost', true],
     ['Rent vs. buy (30 years)', false],
     ['Annuity vs. Linear', false],
   ])('%s starts %s and toggles both ways', async (name, startsOpen) => {
@@ -422,11 +422,14 @@ describe('master purchase-costs toggle', () => {
     'Other costs',
   ];
 
-  const master = () => screen.getByLabelText('Include all purchase costs in total');
+  const master = () => screen.getByLabelText('Enable purchase costs');
 
   const purchaseCost = () =>
     Number(
-      screen.getByLabelText('Purchase cost').getAttribute('value')!.replace(/,/g, ''),
+      screen
+      .getByLabelText('Total purchase cost')
+      .getAttribute('value')!
+      .replace(/,/g, ''),
     );
 
   async function goToCosts() {
@@ -444,7 +447,7 @@ describe('master purchase-costs toggle', () => {
     });
   }
 
-  it('lives in the purchase summary and starts fully on', () => {
+  it('appears on both tabs and starts fully on', () => {
     render(<App />);
 
     expect(master()).toBeChecked();
@@ -564,7 +567,7 @@ describe('master purchase-costs toggle', () => {
     const search = window.location.search;
     window.history.replaceState(null, '', search);
     render(<App />);
-    expect(screen.getAllByLabelText('Include all purchase costs in total')[1]).not.toBeChecked();
+    expect(screen.getAllByLabelText('Enable purchase costs')[1]).not.toBeChecked();
   });
 });
 
@@ -579,7 +582,7 @@ describe('euro amounts are shown to the nearest euro', () => {
       'House price',
       'Own savings',
       'Current rent (used for the rent vs. buy comparison)',
-      'Purchase cost',
+      'Total purchase cost',
       'Remaining = Savings - Cost',
       'Required loan',
       'Total invested on rent',
@@ -855,7 +858,7 @@ describe('focus indication', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    const toggle = screen.getByRole('button', { name: 'Purchase summary' });
+    const toggle = screen.getByRole('button', { name: 'Purchase cost' });
 
     // A plain `focus:` ring boxes the title on every click. `focus-visible:`
     // leaves mouse clicks clean while keeping keyboard navigation traceable —
@@ -1042,14 +1045,14 @@ describe('extra repayments feed through to the other cards', () => {
 
   it('leaves the required loan and purchase cost alone', () => {
     const plain = open(BASE);
-    const before = { loan: euro('Required loan'), cost: euro('Purchase cost') };
+    const before = { loan: euro('Required loan'), cost: euro('Total purchase cost') };
     plain.unmount();
 
     open(`${BASE}&overpaymentYearly=2500&overpaymentYearlyMonth=12`);
 
     // How you repay cannot change what you had to borrow in the first place.
     expect(euro('Required loan')).toBe(before.loan);
-    expect(euro('Purchase cost')).toBe(before.cost);
+    expect(euro('Total purchase cost')).toBe(before.cost);
   });
 
   it('scales with the size of the extra repayment', () => {
@@ -1397,20 +1400,20 @@ describe('other costs field', () => {
 
   it('starts empty, so it changes nothing until used', async () => {
     render(<App />);
-    const before = euro('Purchase cost');
+    const before = euro('Total purchase cost');
 
     await goToCosts();
     expect(screen.getByLabelText(/^Other costs/)).toHaveValue('0');
     expect(screen.getByLabelText('Include Other costs in total')).toBeChecked();
 
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Mortgage' }));
-    expect(euro('Purchase cost')).toBe(before);
+    expect(euro('Total purchase cost')).toBe(before);
   });
 
   it('adds what you enter to the purchase cost', async () => {
     const user = userEvent.setup();
     render(<App />);
-    const before = euro('Purchase cost');
+    const before = euro('Total purchase cost');
 
     await goToCosts();
     const field = screen.getByLabelText(/^Other costs/);
@@ -1419,7 +1422,7 @@ describe('other costs field', () => {
     await user.tab();
 
     await user.click(screen.getByRole('tab', { name: 'Mortgage' }));
-    expect(euro('Purchase cost')).toBeGreaterThan(before);
+    expect(euro('Total purchase cost')).toBeGreaterThan(before);
   });
 
   it('round-trips through the URL', async () => {
@@ -1448,8 +1451,8 @@ describe('other costs field', () => {
     window.history.replaceState(null, '', '?otherCosts=4200');
     render(<App />);
 
-    await user.click(screen.getByLabelText('Include all purchase costs in total'));
-    expect(euro('Purchase cost')).toBe(0);
+    await user.click(screen.getByLabelText('Enable purchase costs'));
+    expect(euro('Total purchase cost')).toBe(0);
 
     await goToCosts();
     expect(screen.getByLabelText('Include Other costs in total')).not.toBeChecked();
@@ -1576,4 +1579,78 @@ describe('expected annual rent increase', () => {
     expect(breakEven()).toBe(flat.breakEven);
     expect(flat.rent).toBe(1900 * 360);
   });
+});
+
+describe('master toggle on the Purchase Costs tab', () => {
+  const master = () => screen.getByLabelText('Enable purchase costs');
+  const total = () =>
+    Number(
+      screen
+        .getByLabelText('Total purchase cost')
+        .getAttribute('value')!
+        .replace(/,/g, ''),
+    );
+
+  async function toCosts() {
+    await userEvent.setup().click(
+      screen.getByRole('tab', { name: 'Purchase Costs' }),
+    );
+  }
+  async function toMortgage() {
+    await userEvent.setup().click(screen.getByRole('tab', { name: 'Mortgage' }));
+  }
+
+  it('appears on the costs tab too, showing the running total', async () => {
+    render(<App />);
+    await toCosts();
+
+    expect(master()).toBeChecked();
+    expect(total()).toBeGreaterThan(0);
+  });
+
+  // The point of putting it here: switched everything off from the summary,
+  // you would otherwise have to tick nine boxes to get back.
+  it('can switch everything back on from where the lines live', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const original = total();
+    await user.click(master()); // off, from the summary card
+    expect(total()).toBe(0);
+
+    await toCosts();
+    expect(master()).not.toBeChecked();
+    await user.click(master()); // back on, from the costs tab
+
+    expect(total()).toBeCloseTo(original, 6);
+    expect(screen.getByLabelText('Include Notary in total')).toBeChecked();
+  });
+
+  it('shows the same state on both tabs', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await toCosts();
+
+    await user.click(screen.getByLabelText('Include Notary in total'));
+    expect(master()).toBePartiallyChecked();
+
+    await toMortgage();
+    expect(master()).toBePartiallyChecked();
+    expect(master()).not.toBeChecked();
+  });
+
+  it('drops the tooltip that explained the two staying in sync', () => {
+    render(<App />);
+
+    // Redundant now the control is in both places.
+    const row = master().closest('div')!.parentElement!;
+    expect(row.querySelector('button[aria-expanded]')).toBeNull();
+  });
+});
+
+it('names the purchase cost card after the figure it shows', () => {
+  render(<App />);
+
+  expect(screen.getByRole('button', { name: 'Purchase cost' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Purchase summary' })).toBeNull();
 });

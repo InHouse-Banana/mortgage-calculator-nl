@@ -39,6 +39,7 @@ type FieldSpec = {
   title: string;
   /** Second line of the label, for a parenthetical that would otherwise wrap. */
   titleNote?: string;
+  valueLabel?: string;
   prepend?: string;
   append?: string;
   value: number;
@@ -65,6 +66,7 @@ function Field({
       disabled={spec.disabled}
       title={spec.title}
       titleNote={spec.titleNote}
+      valueLabel={spec.valueLabel}
       prepend={spec.prepend}
       append={spec.append}
       value={spec.value}
@@ -160,21 +162,19 @@ export function Mortgage(props: Props) {
         <Field spec={{ title: 'Current rent', titleNote: '(used for the rent vs. buy comparison)', prepend: '€', value: props.rent, field: 'rent' }} onChange={onChange} />
       </Card>
 
-      <Card title="Purchase summary" collapsible>
+      <Card title="Purchase cost" collapsible>
         <Field
           spec={{
-            title: 'Purchase cost',
+            title: 'Enable purchase costs',
+            valueLabel: 'Total purchase cost',
             prepend: '€',
             value: props.cost,
             field: null,
             disabled: true,
-            info: `Switches every purchase cost at once.
-
-The Purchase Costs tab stays in step — untick lines there and this shows a dash.`,
             toggle: {
               checked: props.allCostsEnabled,
               indeterminate: !props.allCostsEnabled && props.someCostsEnabled,
-              label: 'Include all purchase costs in total',
+              label: 'Enable purchase costs',
               onChange: props.onToggleAllCosts,
             },
           }}

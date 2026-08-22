@@ -17,6 +17,12 @@ type InputFieldProps = {
    */
   titleNote?: string;
   /**
+   * Accessible name for the number itself, when the visible label describes the
+   * toggle beside it rather than the value — "Enable purchase costs" names the
+   * checkbox, while the figure next to it is the total.
+   */
+  valueLabel?: string;
+  /**
    * Digits shown after the decimal point. Defaults to 0 for money (cents are
    * noise on figures this size) and 2 otherwise, so rates keep their precision.
    * Display only — state and the calculation engine keep full precision.
@@ -41,6 +47,7 @@ export function InputField({
   disabled,
   info,
   titleNote,
+  valueLabel,
   decimals,
   toggle,
 }: InputFieldProps) {
@@ -85,15 +92,20 @@ export function InputField({
             className="h-3.5 w-3.5 rounded border-brand-300 text-brand-400 focus:ring-2 focus:ring-brand-200"
           />
         )}
-        <label htmlFor={id}>
-          {title}
-          {titleNote && (
-            <>
+        {/* With a valueLabel the visible text names the toggle, not the
+            number, so it must not be a <label for> the input — that would give
+            the input a second name and make it ambiguous to assistive tech. */}
+        {React.createElement(
+          valueLabel ? 'span' : 'label',
+          valueLabel ? {} : { htmlFor: id },
+          title,
+          titleNote ? (
+            <React.Fragment key="note">
               {' '}
               <span className="block">{titleNote}</span>
-            </>
-          )}
-        </label>
+            </React.Fragment>
+          ) : null,
+        )}
         {info && <InfoTooltip text={info} />}
         {disabled && (
           <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">
@@ -109,6 +121,7 @@ export function InputField({
         )}
         <NumericFormat
           id={id}
+          aria-label={valueLabel}
           inputMode="decimal"
           decimalScale={decimalScale}
           thousandSeparator

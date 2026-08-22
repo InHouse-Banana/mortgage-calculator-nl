@@ -474,8 +474,12 @@ const App = () => {
             <Costs
               {...state}
               loan={loan}
+              cost={cost}
+              allCostsEnabled={allCostsEnabled}
+              someCostsEnabled={someCostsEnabled}
               onChange={handleChange}
               onToggle={handleToggleCost}
+              onToggleAllCosts={handleToggleAllCosts}
             />
           </TabPanel>
           <TabPanel value="interest" active={infoTab}>
