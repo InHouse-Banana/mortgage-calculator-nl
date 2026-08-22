@@ -2,7 +2,7 @@ import React from 'react';
 import { InputField } from './InputField';
 import { Card, CardSection } from './Card';
 import { glossary } from '../common/glossary';
-import { effectiveAnnualRate } from '../common/Formulas';
+import { effectiveAnnualRate, totalRentOverTerm } from '../common/Formulas';
 
 type Totals = {
   totalPaidGross: number;
@@ -22,6 +22,7 @@ type Props = {
   percentage: number;
   deduction: number;
   rent: number;
+  rentIncrease: number;
   termYears: number;
   termMonths: number;
   annuity: Totals;
@@ -141,6 +142,11 @@ function MortgageTypeSection({
 
 export function Mortgage(props: Props) {
   const { onChange } = props;
+  const totalRent = totalRentOverTerm(
+    props.rent,
+    props.termMonths,
+    props.rentIncrease,
+  );
 
   return (
     <div className="space-y-4">
@@ -189,9 +195,10 @@ Buying counts your own savings put in on day one, plus net payments so far. Purc
 
 Equity built and any change in house price are not counted.`}
       >
-        <Field spec={{ title: 'Total invested on rent', prepend: '€', value: props.rent * props.termMonths, field: null, disabled: true }} onChange={onChange} />
-        <Field spec={{ title: 'Total rent - total cost (gross)', prepend: '€', value: props.rent * props.termMonths - props.annuity.totalInvestedGross, field: null, disabled: true }} onChange={onChange} />
-        <Field spec={{ title: 'Total rent - total cost (net)', prepend: '€', value: props.rent * props.termMonths - props.annuity.totalInvestedNet, field: null, disabled: true }} onChange={onChange} />
+        <Field spec={{ title: 'Expected annual rent increase', prepend: '%', value: props.rentIncrease, field: 'rentIncrease', info: glossary.rentIncrease }} onChange={onChange} />
+        <Field spec={{ title: 'Total invested on rent', prepend: '€', value: totalRent, field: null, disabled: true }} onChange={onChange} />
+        <Field spec={{ title: 'Total rent - total cost (gross)', prepend: '€', value: totalRent - props.annuity.totalInvestedGross, field: null, disabled: true }} onChange={onChange} />
+        <Field spec={{ title: 'Total rent - total cost (net)', prepend: '€', value: totalRent - props.annuity.totalInvestedNet, field: null, disabled: true }} onChange={onChange} />
         <BreakEvenField title="Break-even (Annuity)" month={props.annuityBreakEvenMonth} termYears={props.termYears} />
         <BreakEvenField title="Break-even (Linear)" month={props.linearBreakEvenMonth} termYears={props.termYears} />
       </Card>

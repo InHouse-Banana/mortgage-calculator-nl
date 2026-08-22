@@ -45,6 +45,12 @@ Paying earlier in the year saves more interest, because the money works against 
 
 This calculator warns when you exceed it, but never caps what you enter, and it does not model the fee itself. Check your own mortgage terms.`,
 
+  rentIncrease: `How much you expect your rent to go up each year, as a percentage.
+
+The increase lands once a year rather than monthly: months 1-12 pay today's rent, months 13-24 pay it plus the increase, and so on.
+
+Leave it at 0 to compare against a rent that never moves — but note that the net cost of buying *rises* over the term as the tax deduction shrinks, so a fixed rent can look cheaper than it realistically would be.`,
+
   otherCosts: `Anything the list above does not cover — a kitchen, movers, buying off the ground lease (afkoop erfpacht), a bank's arrangement fee, or a renovation you are financing with the purchase.
 
 It is treated exactly like the other costs: added to the total and financed into the loan, so it raises what you borrow rather than what you pay on the day.`,

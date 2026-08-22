@@ -8,7 +8,9 @@ import {
 } from './common/Formulas';
 import { Overpayment as OverpaymentType } from './common/Types';
 import {
+  DEFAULT_RENT_INCREASE,
   DEFAULT_TERM_YEARS,
+  MAX_RENT_INCREASE,
   DEFAULT_YEARLY_OVERPAYMENT_MONTH,
   MAX_TERM_YEARS,
   MIN_TERM_YEARS,
@@ -61,6 +63,7 @@ export type AppState = {
   deduction: number;
   savings: number;
   rent: number;
+  rentIncrease: number;
   termYears: number;
 
   // costs
@@ -89,6 +92,7 @@ const URL_SYNCED_FIELDS = [
   'deduction',
   'savings',
   'rent',
+  'rentIncrease',
   'termYears',
   'overpaymentMonthly',
   'overpaymentYearly',
@@ -135,6 +139,7 @@ const FIELD_BOUNDS: Partial<
   price: { min: 0 },
   savings: { min: 0 },
   rent: { min: 0 },
+  rentIncrease: { min: 0, max: MAX_RENT_INCREASE },
   interest: { min: 0, max: 20 },
   deduction: { min: 0, max: 100 },
   termYears: { min: MIN_TERM_YEARS, max: MAX_TERM_YEARS, integer: true },
@@ -176,6 +181,7 @@ const App = () => {
       deduction: readNumberParam(params, 'deduction', 36.93),
       savings: readNumberParam(params, 'savings', 40000),
       rent: readNumberParam(params, 'rent', 1600),
+      rentIncrease: readNumberParam(params, 'rentIncrease', DEFAULT_RENT_INCREASE),
       termYears: clampField(
         'termYears',
         readNumberParam(params, 'termYears', DEFAULT_TERM_YEARS),
@@ -322,13 +328,25 @@ const App = () => {
   );
 
   const annuityBreakEvenMonth = useMemo(
-    () => calculateBreakEvenMonth(annuity.monthly, state.savings, state.rent),
-    [annuity.monthly, state.savings, state.rent],
+    () =>
+      calculateBreakEvenMonth(
+        annuity.monthly,
+        state.savings,
+        state.rent,
+        state.rentIncrease,
+      ),
+    [annuity.monthly, state.savings, state.rent, state.rentIncrease],
   );
 
   const linearBreakEvenMonth = useMemo(
-    () => calculateBreakEvenMonth(linear.monthly, state.savings, state.rent),
-    [linear.monthly, state.savings, state.rent],
+    () =>
+      calculateBreakEvenMonth(
+        linear.monthly,
+        state.savings,
+        state.rent,
+        state.rentIncrease,
+      ),
+    [linear.monthly, state.savings, state.rent, state.rentIncrease],
   );
 
   function handleChange(field: string, value: number) {
@@ -439,6 +457,7 @@ const App = () => {
               percentage={percentage}
               deduction={state.deduction}
               rent={state.rent}
+              rentIncrease={state.rentIncrease}
               termYears={state.termYears}
               termMonths={termMonths}
               allCostsEnabled={allCostsEnabled}

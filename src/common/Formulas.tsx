@@ -293,6 +293,42 @@ export function calgulateLoanFigures({
   return { loan, cost, percentage };
 }
 
+// Rent is held flat within a year and stepped once at each anniversary, which
+// is how Dutch rent reviews work — an increase lands on one date, not monthly.
+// Month 1-12 pay the base, 13-24 pay base x (1 + rate), and so on.
+//
+// A non-finite rate falls back to no increase rather than poisoning the whole
+// comparison with NaN.
+export function rentForMonth(
+  baseRent: number,
+  month: number,
+  annualIncreasePercent: number,
+): number {
+  if (!Number.isFinite(annualIncreasePercent) || annualIncreasePercent === 0) {
+    return baseRent;
+  }
+  const yearsElapsed = Math.max(Math.floor((month - 1) / MONTHS_PER_YEAR), 0);
+  return baseRent * Math.pow(1 + annualIncreasePercent / 100, yearsElapsed);
+}
+
+/** What renting costs over `months`, with the increase applied each year. */
+export function totalRentOverTerm(
+  baseRent: number,
+  months: number,
+  annualIncreasePercent: number,
+): number {
+  if (months <= 0) return 0;
+  if (!Number.isFinite(annualIncreasePercent) || annualIncreasePercent === 0) {
+    return baseRent * months;
+  }
+
+  let total = 0;
+  for (let month = 1; month <= months; month++) {
+    total += rentForMonth(baseRent, month, annualIncreasePercent);
+  }
+  return total;
+}
+
 // First month where the cumulative cost of buying drops at or below the
 // cumulative rent paid so far, or null if that never happens in the schedule.
 //
@@ -307,13 +343,14 @@ export function calculateBreakEvenMonth(
   monthly: Array<MonthMortgageData>,
   upfrontOutlay: number,
   rent: number,
+  annualRentIncreasePercent = 0,
 ): number | null {
   let cumulativeBuy = upfrontOutlay;
   let cumulativeRent = 0;
 
   for (const month of monthly) {
     cumulativeBuy += month.netPaid;
-    cumulativeRent += rent;
+    cumulativeRent += rentForMonth(rent, month.month, annualRentIncreasePercent);
     if (cumulativeBuy <= cumulativeRent) {
       return month.month;
     }

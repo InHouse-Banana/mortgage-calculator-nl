@@ -25,6 +25,7 @@ const state: AppState = {
   interest: 1.34,
   deduction: 36.93,
   rent: 1300,
+  rentIncrease: 0,
   termYears: DEFAULT_TERM_YEARS,
   costEnabled: {
     notary: true,

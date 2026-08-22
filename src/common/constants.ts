@@ -33,3 +33,8 @@ export const PENALTY_FREE_OVERPAYMENT_RATE = 0.1;
 
 // December: the month most people have a bonus available to overpay with.
 export const DEFAULT_YEARLY_OVERPAYMENT_MONTH = 12;
+
+// Rent increases are opt-in: the default is 0, so a link shared before this
+// existed still shows the figures it showed then.
+export const DEFAULT_RENT_INCREASE = 0;
+export const MAX_RENT_INCREASE = 20;

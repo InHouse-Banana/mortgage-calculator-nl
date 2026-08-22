@@ -1469,3 +1469,111 @@ it('renders a toggle for every cost the model knows about', async () => {
 
   expect(toggles).toHaveLength(TOGGLEABLE_COSTS.length);
 });
+
+describe('expected annual rent increase', () => {
+  const REPORTED = '?price=400000&savings=60000&interest=4&rent=1900&termYears=30';
+
+  function open(search: string) {
+    window.history.replaceState(null, '', search);
+    return render(<App />);
+  }
+
+  const euro = (label: string) =>
+    Number(screen.getByLabelText(label).getAttribute('value')!.replace(/,/g, ''));
+
+  const breakEven = () =>
+    screen.getByText('Break-even (Annuity)').nextElementSibling!.textContent!;
+
+  it('sits in the rent-vs-buy card and starts at zero', () => {
+    open(REPORTED);
+
+    expect(screen.getByLabelText('Expected annual rent increase')).toHaveValue('0');
+    // Flat rent over the term: 1,900 x 360.
+    expect(euro('Total invested on rent')).toBe(1900 * 360);
+  });
+
+  it('compounds the total spent on rent', async () => {
+    const user = userEvent.setup();
+    open(REPORTED);
+    const flat = euro('Total invested on rent');
+
+    const field = screen.getByLabelText('Expected annual rent increase');
+    await user.clear(field);
+    await user.type(field, '3');
+    await user.tab();
+
+    expect(euro('Total invested on rent')).toBeGreaterThan(flat);
+  });
+
+  it('moves the break-even for both mortgage types', async () => {
+    const user = userEvent.setup();
+    open(REPORTED);
+    expect(breakEven()).toBe('Month 102 (year 9)');
+
+    const field = screen.getByLabelText('Expected annual rent increase');
+    await user.clear(field);
+    await user.type(field, '3');
+    await user.tab();
+
+    expect(breakEven()).toBe('Month 79 (year 7)');
+    expect(
+      screen.getByText('Break-even (Linear)').nextElementSibling!.textContent,
+    ).not.toBe('Month 102 (year 9)');
+  });
+
+  it('clamps out-of-range entries', async () => {
+    const user = userEvent.setup();
+    open(REPORTED);
+    const field = () => screen.getByLabelText('Expected annual rent increase');
+
+    await user.clear(field());
+    await user.type(field(), '99');
+    await user.tab();
+    expect(field()).toHaveValue('20');
+
+    await user.clear(field());
+    await user.type(field(), '-5');
+    await user.tab();
+    expect(field()).toHaveValue('0');
+  });
+
+  it('round-trips through the URL', async () => {
+    const user = userEvent.setup();
+    open(REPORTED);
+
+    const field = screen.getByLabelText('Expected annual rent increase');
+    await user.clear(field);
+    await user.type(field, '3.5');
+    await user.tab();
+
+    expect(new URLSearchParams(window.location.search).get('rentIncrease')).toBe('3.5');
+  });
+
+  it('restores from the URL', () => {
+    open(`${REPORTED}&rentIncrease=4.5`);
+
+    expect(screen.getByLabelText('Expected annual rent increase')).toHaveValue('4.5');
+    expect(euro('Total invested on rent')).toBeGreaterThan(1900 * 360);
+  });
+
+  it('leaves a link without the parameter exactly as it was', () => {
+    // Absent rentIncrease must behave as 0, so links shared before this
+    // existed still show the figures they showed then.
+    const without = open(REPORTED);
+    const flat = {
+      rent: euro('Total invested on rent'),
+      gross: euro('Total rent - total cost (gross)'),
+      net: euro('Total rent - total cost (net)'),
+      breakEven: breakEven(),
+    };
+    without.unmount();
+
+    open(`${REPORTED}&rentIncrease=0`);
+
+    expect(euro('Total invested on rent')).toBe(flat.rent);
+    expect(euro('Total rent - total cost (gross)')).toBe(flat.gross);
+    expect(euro('Total rent - total cost (net)')).toBe(flat.net);
+    expect(breakEven()).toBe(flat.breakEven);
+    expect(flat.rent).toBe(1900 * 360);
+  });
+});

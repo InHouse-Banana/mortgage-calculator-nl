@@ -4,6 +4,8 @@ import {
   calgulateLoanFigures,
   calculateBreakEvenMonth,
   effectiveAnnualRate,
+  rentForMonth,
+  totalRentOverTerm,
 } from '../Formulas';
 import { AppState } from '../../App';
 import {
@@ -48,6 +50,7 @@ function baseState(overrides: Partial<AppState> = {}): AppState {
     interest: 4.0,
     deduction: 36.93,
     rent: 1600,
+    rentIncrease: 0,
     termYears: 30,
     costEnabled: {
       notary: true,
@@ -394,6 +397,7 @@ describe('rent-vs-buy break-even counts the money actually out of pocket', () =>
     savings: 40000,
     interest: 4.62,
     rent: 1600,
+    rentIncrease: 0,
     termYears: 30,
     costEnabled: {
       notary: false,
@@ -641,5 +645,104 @@ describe('other costs', () => {
 
     expect(off.cost).toBeLessThan(on.cost);
     expect(off).toEqual(calgulateLoanFigures(baseState({ otherCosts: 0 })));
+  });
+});
+
+describe('expected annual rent increase', () => {
+  const RENT = 1600;
+
+  it('holds rent flat within a year and steps it at each boundary', () => {
+    // 5% a year: months 1-12 at 1600, 13-24 at 1680, 25-36 at 1764.
+    expect(rentForMonth(RENT, 1, 5)).toBeCloseTo(1600, 6);
+    expect(rentForMonth(RENT, 12, 5)).toBeCloseTo(1600, 6);
+    expect(rentForMonth(RENT, 13, 5)).toBeCloseTo(1680, 6);
+    expect(rentForMonth(RENT, 24, 5)).toBeCloseTo(1680, 6);
+    expect(rentForMonth(RENT, 25, 5)).toBeCloseTo(1764, 6);
+    expect(rentForMonth(RENT, 37, 5)).toBeCloseTo(1600 * 1.05 ** 3, 6);
+  });
+
+  it('changes nothing at 0%', () => {
+    for (const month of [1, 13, 200, 360]) {
+      expect(rentForMonth(RENT, month, 0)).toBe(RENT);
+    }
+    expect(totalRentOverTerm(RENT, 360, 0)).toBe(RENT * 360);
+  });
+
+  it('totals the compounded rent over the term', () => {
+    // 3 years at 10%: 12 x 1600 + 12 x 1760 + 12 x 1936.
+    expect(totalRentOverTerm(RENT, 36, 10)).toBeCloseTo(
+      12 * 1600 + 12 * 1760 + 12 * 1936,
+      6,
+    );
+  });
+
+  it('handles a term that stops mid-year', () => {
+    // 18 months at 10%: a full year at 1600, then six months at 1760.
+    expect(totalRentOverTerm(RENT, 18, 10)).toBeCloseTo(
+      12 * 1600 + 6 * 1760,
+      6,
+    );
+  });
+
+  it('rises with the rate, and never below the flat case', () => {
+    const totals = [0, 1, 2, 3, 5, 8].map((rate) =>
+      totalRentOverTerm(RENT, 360, rate),
+    );
+    totals.slice(1).forEach((total, i) =>
+      expect(total).toBeGreaterThan(totals[i]),
+    );
+    expect(totals[0]).toBe(RENT * 360);
+  });
+
+  it('rejects nonsense rather than producing NaN', () => {
+    [NaN, Infinity, -Infinity].forEach((bad) => {
+      expect(rentForMonth(RENT, 12, bad)).toBe(RENT);
+      expect(totalRentOverTerm(RENT, 12, bad)).toBe(RENT * 12);
+    });
+    // A zero or negative term has nothing to total.
+    expect(totalRentOverTerm(RENT, 0, 5)).toBe(0);
+    expect(totalRentOverTerm(RENT, -12, 5)).toBe(0);
+    // Month numbers below 1 fall back to the first year.
+    expect(rentForMonth(RENT, 0, 5)).toBe(RENT);
+  });
+
+  // 400k, 60k down, 4% — a 359k loan at a 1,715 instalment.
+  const scenario = () => {
+    const state = baseState({ price: 400000, savings: 60000, interest: 4 });
+    const { loan } = calgulateLoanFigures(state);
+    return {
+      savings: state.savings,
+      monthly: calculateAnnuityData(4, 36.93, 0, loan, 360).monthly,
+    };
+  };
+
+  it('brings the break-even forward, because renting gets dearer', () => {
+    const { monthly, savings } = scenario();
+
+    const flat = calculateBreakEvenMonth(monthly, savings, 1900, 0);
+    const rising = calculateBreakEvenMonth(monthly, savings, 1900, 3);
+
+    expect(flat).toBe(102);
+    expect(rising).toBe(79);
+  });
+
+  it('can reach break-even where flat rent never would', () => {
+    const { monthly, savings } = scenario();
+
+    // At a flat 1,600 the buyer never catches up: the net instalment *rises*
+    // as the tax deduction shrinks, while the rent stays put. Three percent a
+    // year is enough to overtake it.
+    expect(calculateBreakEvenMonth(monthly, savings, RENT, 0)).toBeNull();
+    expect(calculateBreakEvenMonth(monthly, savings, RENT, 3)).toBe(117);
+  });
+
+  it('defaults to no increase, so existing links are unaffected', () => {
+    const state = baseState({ savings: 50000 });
+    const { loan } = calgulateLoanFigures(state);
+    const annuity = calculateAnnuityData(4, 36.93, 0, loan, 360);
+
+    expect(calculateBreakEvenMonth(annuity.monthly, state.savings, RENT)).toBe(
+      calculateBreakEvenMonth(annuity.monthly, state.savings, RENT, 0),
+    );
   });
 });
