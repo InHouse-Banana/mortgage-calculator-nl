@@ -63,12 +63,13 @@ Vercel needs no further configuration and no environment variables.
 
 ## SEO notes
 
-The app is client-rendered, so a crawler's first fetch would otherwise be an empty
-`<div id="root">`. Real prose describing the calculator lives in that div and is
-replaced by React on mount, so the first pass has something to read. Structured data
-(`WebApplication`) sits in the head, where it needs no JavaScript at all. Every input
-change rewrites the query string, so a canonical URL points all permutations at one
-page.
+The production build **prerenders** the app to static HTML (`scripts/prerender.mjs`),
+so a crawler's first fetch carries the full page rather than an empty
+`<div id="root">`. React replaces that markup on mount rather than hydrating it,
+because the app derives its initial state from the query string and any shared link
+would otherwise mismatch. Structured data (`WebApplication`) sits in the head, where
+it needs no JavaScript at all. Every input change rewrites the query string, so a
+canonical URL points all permutations at one page.
 
 ## Privacy
 

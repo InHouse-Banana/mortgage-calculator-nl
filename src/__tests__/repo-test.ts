@@ -40,7 +40,10 @@ describe('repository is safe to publish', () => {
   it('keeps the scripts Vercel needs', () => {
     const pkg = JSON.parse(read('package.json'));
 
-    expect(pkg.scripts.build).toBe('tsc && vite build');
+    // Asserted by parts, not as one string, so the prerender step can be
+    // extended without this becoming a copy of it.
+    expect(pkg.scripts.build).toContain('tsc');
+    expect(pkg.scripts.build).toContain('vite build');
     expect(pkg.scripts.dev).toBeDefined();
     expect(pkg.scripts.test).toBeDefined();
   });
@@ -53,10 +56,13 @@ describe('repository is safe to publish', () => {
     expect(vercel.buildCommand).toBe('npm run build');
   });
 
-  it('ignores local notes, env files and vercel state', () => {
+  it('ignores local notes, env files, build output and vercel state', () => {
     const ignored = read('.gitignore');
 
     expect(ignored).toMatch(/^\/context$/m);
+    // The SSR bundle is a build intermediate; the prerender script deletes it,
+    // but a failed build would otherwise leave it staged.
+    expect(ignored).toMatch(/^\/dist-ssr$/m);
     expect(ignored).toMatch(/^\.env$/m);
     expect(ignored).toMatch(/^\.env\.\*$/m);
     expect(ignored).toMatch(/^\.vercel$/m);
@@ -213,9 +219,9 @@ describe('discoverability', () => {
     expect(data.featureList.length).toBeGreaterThan(3);
   });
 
+  // The shell prose is the dev-server view and a safety net; production
+  // replaces it with the prerendered app, which is richer still.
   it('serves real prose in the shell, not an empty root div', () => {
-    // A crawler's first pass happens before it decides whether to spend a
-    // render budget on JavaScript. An empty <div id="root"> gives it nothing.
     const root = html.slice(html.indexOf('<div id="root">'), html.indexOf('</body>'));
     const prose = root.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
