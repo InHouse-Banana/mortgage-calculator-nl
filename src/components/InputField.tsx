@@ -81,7 +81,7 @@ export function InputField({
 
   return (
     <div className={toggle && !toggle.checked ? 'opacity-50' : undefined}>
-      <div className="mb-1 flex items-center gap-1.5 text-base text-brand-400">
+      <div className="mb-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-base text-brand-400">
         {toggle && (
           <input
             ref={toggleRef}
@@ -102,7 +102,7 @@ export function InputField({
           titleNote ? (
             <React.Fragment key="note">
               {' '}
-              <span className="block">{titleNote}</span>
+              <span>{titleNote}</span>
             </React.Fragment>
           ) : null,
         )}

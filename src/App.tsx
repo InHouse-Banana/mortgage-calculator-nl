@@ -8,6 +8,7 @@ import {
 } from './common/Formulas';
 import { Overpayment as OverpaymentType } from './common/Types';
 import {
+  DEFAULT_LUMP_SUM_MONTH,
   DEFAULT_RENT_INCREASE,
   DEFAULT_TERM_YEARS,
   MAX_RENT_INCREASE,
@@ -155,7 +156,7 @@ const FIELD_BOUNDS: Partial<
   // Upper bound is the longest schedule the term allows; the lump-sum month is
   // additionally capped against the *current* term in handleChange.
   overpaymentLumpSumMonth: {
-    min: 0,
+    min: DEFAULT_LUMP_SUM_MONTH,
     max: MAX_TERM_YEARS * MONTHS_PER_YEAR,
     integer: true,
   },
@@ -196,8 +197,19 @@ const App = () => {
           DEFAULT_YEARLY_OVERPAYMENT_MONTH,
         ),
       ),
-      overpaymentLumpSumMonth: 0,
-      overpaymentLumpSumAmount: 0,
+      overpaymentLumpSumMonth: clampField(
+        'overpaymentLumpSumMonth',
+        readNumberParam(
+          params,
+          'overpaymentLumpSumMonth',
+          DEFAULT_LUMP_SUM_MONTH,
+        ),
+      ),
+      overpaymentLumpSumAmount: readNumberParam(
+        params,
+        'overpaymentLumpSumAmount',
+        0,
+      ),
 
       notary: readNumberParam(params, 'notary', 1200),
       valuation: readNumberParam(params, 'valuation', 800),
@@ -225,8 +237,9 @@ const App = () => {
   const overpayment: OverpaymentType | undefined = useMemo(() => {
     const hasMonthly = state.overpaymentMonthly > 0;
     const hasYearly = state.overpaymentYearly > 0;
-    const hasLumpSum =
-      state.overpaymentLumpSumAmount > 0 && state.overpaymentLumpSumMonth > 0;
+    // The month is clamped to at least 1, so an amount on its own is enough —
+    // previously a lump sum with no month set was silently ignored.
+    const hasLumpSum = state.overpaymentLumpSumAmount > 0;
     if (!hasMonthly && !hasYearly && !hasLumpSum) return undefined;
     return {
       monthly: state.overpaymentMonthly,

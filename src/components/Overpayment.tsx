@@ -162,6 +162,10 @@ All three stack, and each one shortens the term rather than lowering the instalm
             props.onChange('overpaymentMonthly', parseFloat(value))
           }
         />
+        {/* A monthly amount has no companion month, so the second column stays
+            empty and each amount lines up with the month it lands on. */}
+        <div className="hidden sm:block" aria-hidden="true" />
+
         <InputField
           title="Extra amount per year"
           prepend="€"
@@ -178,6 +182,7 @@ All three stack, and each one shortens the term rather than lowering the instalm
             props.onChange('overpaymentYearlyMonth', parseFloat(value))
           }
         />
+
         <InputField
           title="One-off lump sum amount"
           prepend="€"

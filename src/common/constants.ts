@@ -38,3 +38,7 @@ export const DEFAULT_YEARLY_OVERPAYMENT_MONTH = 12;
 // existed still shows the figures it showed then.
 export const DEFAULT_RENT_INCREASE = 0;
 export const MAX_RENT_INCREASE = 20;
+
+// The first month of the schedule. There is no month 0, and defaulting to it
+// meant an amount entered without a month did nothing at all.
+export const DEFAULT_LUMP_SUM_MONTH = 1;

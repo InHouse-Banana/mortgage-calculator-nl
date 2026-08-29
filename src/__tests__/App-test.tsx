@@ -1073,20 +1073,23 @@ describe('extra repayments feed through to the other cards', () => {
 });
 
 describe('label and tooltip legibility', () => {
-  it('breaks the payoff-month parenthetical onto its own line', async () => {
+  it('keeps the payoff-month title and its qualifier on one line', async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
 
     const input = screen.getAllByLabelText(/^Payoff month/)[0];
     const label = document.querySelector(`label[for="${input.id}"]`)!;
+    const row = label.parentElement!;
 
-    // "(of 360)" is a block, so it never wraps as "Payoff month (of" / "360)".
-    const note = label.querySelector('span.block');
-    expect(note).not.toBeNull();
-    expect(note!.textContent).toBe('(of 360)');
+    // Title and qualifier are one run of text; the "computed" badge is a
+    // separate flex item, so it wraps below rather than squeezing the title
+    // into a break mid-parenthetical.
+    expect(label.textContent).toBe('Payoff month (of 360)');
+    expect(label.querySelector('span.block')).toBeNull();
+    expect(row.className).toContain('flex-wrap');
+    expect(row.textContent).toContain('computed');
 
-    // The accessible name still reads as one phrase.
     expect(input).toHaveAccessibleName('Payoff month (of 360)');
   });
 
@@ -1379,12 +1382,11 @@ it('says what the rent figure is used for', () => {
   );
   const label = document.querySelector(`label[for="${input.id}"]`)!;
 
-  // The note is a second line, so the label never wraps mid-parenthetical.
-  const note = label.querySelector('span.block')!;
-  expect(note.textContent).toBe('(used for the rent vs. buy comparison)');
-
+  expect(label.textContent).toBe(
+    'Current rent (used for the rent vs. buy comparison)',
+  );
   // Matches the card it points at, which is titled "Rent vs. buy (N years)".
-  expect(note.textContent).toContain('rent vs. buy');
+  expect(label.textContent).toContain('rent vs. buy');
   expect(screen.getByRole('button', { name: /^Rent vs\. buy/ })).toBeInTheDocument();
 });
 
@@ -1653,4 +1655,144 @@ it('names the purchase cost card after the figure it shows', () => {
 
   expect(screen.getByRole('button', { name: 'Purchase cost' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Purchase summary' })).toBeNull();
+});
+
+describe('extra repayments card', () => {
+  async function openTab() {
+    await userEvent.setup().click(
+      screen.getByRole('tab', { name: 'Extra Repayments' }),
+    );
+  }
+
+  it('pairs each amount with the month it lands on', async () => {
+    render(<App />);
+    await openTab();
+
+    const card = screen
+      .getByLabelText('Extra amount per month')
+      .closest('.grid')!;
+    const labels = Array.from(card.querySelectorAll('label, span.block'))
+      .map((el) => el.textContent!.trim())
+      .filter((text) => text.length > 0 && !text.startsWith('('));
+
+    expect(labels).toEqual([
+      'Extra amount per month',
+      'Extra amount per year',
+      'Yearly payment in month (December)',
+      'One-off lump sum amount',
+      'Lump sum in month # (1-360)',
+    ]);
+  });
+
+  it('leaves the cell beside the monthly amount empty, so rows line up', async () => {
+    render(<App />);
+    await openTab();
+
+    const card = screen
+      .getByLabelText('Extra amount per month')
+      .closest('.grid')!;
+    const spacer = card.querySelector('[aria-hidden="true"]')!;
+
+    expect(spacer).not.toBeNull();
+    expect(spacer.textContent).toBe('');
+    // Only meaningful in the two-column layout.
+    expect(spacer.className).toContain('hidden');
+    expect(spacer.className).toContain('sm:block');
+  });
+
+  it('defaults the lump-sum month to 1, not 0', async () => {
+    render(<App />);
+    await openTab();
+
+    expect(screen.getByLabelText(/^Lump sum in month/)).toHaveValue('1');
+  });
+
+  it('clamps the lump-sum month to the first month at the earliest', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openTab();
+
+    const field = () => screen.getByLabelText(/^Lump sum in month/);
+    await user.clear(field());
+    await user.type(field(), '0');
+    await user.tab();
+    expect(field()).toHaveValue('1');
+
+    await user.clear(field());
+    await user.type(field(), '-3');
+    await user.tab();
+    expect(field()).toHaveValue('1');
+  });
+
+  it('applies a lump sum entered without touching the month', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openTab();
+
+    const payoff = () =>
+      Number(
+        screen
+          .getAllByLabelText(/^Payoff month/)[0]
+          .getAttribute('value')!
+          .replace(/,/g, ''),
+      );
+    const before = payoff();
+
+    const amount = screen.getByLabelText('One-off lump sum amount');
+    await user.clear(amount);
+    await user.type(amount, '25000');
+    await user.tab();
+
+    // Previously this did nothing: the month defaulted to 0 and the lump sum
+    // was gated behind month > 0.
+    expect(payoff()).toBeLessThan(before);
+  });
+
+  it('restores a shared lump sum from the URL', async () => {
+    // Regression: these were written to the query string but never read back,
+    // so "Share this scenario" silently dropped the lump sum.
+    window.history.replaceState(
+      null,
+      '',
+      '?overpaymentLumpSumAmount=25000&overpaymentLumpSumMonth=24',
+    );
+    render(<App />);
+    await openTab();
+
+    expect(screen.getByLabelText('One-off lump sum amount')).toHaveValue('25,000');
+    expect(screen.getByLabelText(/^Lump sum in month/)).toHaveValue('24');
+  });
+
+  it('round-trips a lump sum through a share link', async () => {
+    const user = userEvent.setup();
+    const first = render(<App />);
+    await openTab();
+
+    const amount = screen.getByLabelText('One-off lump sum amount');
+    await user.clear(amount);
+    await user.type(amount, '18000');
+    await user.tab();
+
+    const month = screen.getByLabelText(/^Lump sum in month/);
+    await user.clear(month);
+    await user.type(month, '36');
+    await user.tab();
+
+    const shared = window.location.search;
+    const payoff = Number(
+      screen.getAllByLabelText(/^Payoff month/)[0].getAttribute('value'),
+    );
+    first.unmount();
+
+    // Reopening the link must reproduce the same schedule, not just the fields.
+    window.history.replaceState(null, '', shared);
+    render(<App />);
+    await openTab();
+
+    expect(screen.getByLabelText('One-off lump sum amount')).toHaveValue('18,000');
+    expect(screen.getByLabelText(/^Lump sum in month/)).toHaveValue('36');
+    expect(
+      Number(screen.getAllByLabelText(/^Payoff month/)[0].getAttribute('value')),
+    ).toBe(payoff);
+  });
 });
