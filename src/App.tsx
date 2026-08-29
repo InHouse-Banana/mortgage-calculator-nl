@@ -455,8 +455,8 @@ const App = () => {
           tabs={[
             { value: 'mortgage', label: 'Mortgage' },
             { value: 'cost', label: 'Purchase Costs' },
-            { value: 'interest', label: 'Interest' },
             { value: 'overpayment', label: 'Extra Repayments' },
+            { value: 'interest', label: 'Interest' },
           ]}
         />
         <div className="mt-4">

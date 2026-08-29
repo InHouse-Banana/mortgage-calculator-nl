@@ -80,8 +80,15 @@ export function InputField({
   }
 
   return (
-    <div className={toggle && !toggle.checked ? 'opacity-50' : undefined}>
-      <div className="mb-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-base text-brand-400">
+    // Column layout with the value pushed to the bottom: grid items stretch to
+    // the row height, so every value in a row lands on the same line however
+    // tall its label happens to be.
+    <div
+      className={
+        'flex h-full flex-col ' + (toggle && !toggle.checked ? 'opacity-50' : '')
+      }
+    >
+      <div className="flex items-center gap-1.5 text-base text-brand-400">
         {toggle && (
           <input
             ref={toggleRef}
@@ -107,13 +114,18 @@ export function InputField({
           ) : null,
         )}
         {info && <InfoTooltip text={info} />}
-        {disabled && (
-          <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">
-            computed
-          </span>
-        )}
       </div>
-      <div className="relative">
+      {/* Always its own line. Inline, it reads differently depending on whether
+          the title happens to leave room beside it. */}
+      {disabled && (
+        <span className="mt-1 self-start rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">
+          computed
+        </span>
+      )}
+      {/* mt-auto: the cell is stretched to the row height, so pushing the
+          value to the bottom lines it up with every other value in the row,
+          however many lines the labels above them took. */}
+      <div className="relative mt-auto pt-1">
         {prepend && (
           <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-brand-300">
             {prepend}

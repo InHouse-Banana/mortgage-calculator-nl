@@ -87,14 +87,14 @@ function BreakEvenField({
   termYears: number;
 }) {
   return (
-    <div>
-      <span className="mb-1 flex items-center gap-1.5 text-base text-brand-400">
+    <div className="flex h-full flex-col">
+      <span className="flex items-center gap-1.5 text-base text-brand-400">
         {title}
-        <span className="rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">
-          computed
-        </span>
       </span>
-      <div className="rounded-md border border-transparent bg-brand-50 px-3 py-2 text-sm text-brand-500">
+      <span className="mt-1 self-start rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">
+        computed
+      </span>
+      <div className="mt-auto pt-1 rounded-md border border-transparent bg-brand-50 px-3 py-2 text-sm text-brand-500">
         {month === null
           ? `Never within ${termYears} years`
           : `Month ${month} (year ${Math.ceil(month / 12)})`}

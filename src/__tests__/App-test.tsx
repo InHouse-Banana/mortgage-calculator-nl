@@ -765,7 +765,8 @@ describe('rent-vs-buy break-even in the UI', () => {
   // The value is the sibling of the label span. Reading the whole card instead
   // would pass on any unrelated figure changing.
   const breakEven = (which: 'Annuity' | 'Linear') =>
-    screen.getByText(`Break-even (${which})`).nextElementSibling!.textContent!;
+    screen.getByText(`Break-even (${which})`).parentElement!.lastElementChild!
+      .textContent!;
 
   it('accounts for the deposit instead of breaking even in month 1', () => {
     window.history.replaceState(null, '', REPORTED);
@@ -1014,7 +1015,8 @@ describe('extra repayments feed through to the other cards', () => {
 
   it('moves the break-even month', () => {
     const value = () =>
-      screen.getByText('Break-even (Annuity)').nextElementSibling!.textContent!;
+      screen.getByText('Break-even (Annuity)').parentElement!.lastElementChild!
+        .textContent!;
 
     const plain = open(BASE);
     const before = value();
@@ -1082,13 +1084,16 @@ describe('label and tooltip legibility', () => {
     const label = document.querySelector(`label[for="${input.id}"]`)!;
     const row = label.parentElement!;
 
-    // Title and qualifier are one run of text; the "computed" badge is a
-    // separate flex item, so it wraps below rather than squeezing the title
-    // into a break mid-parenthetical.
+    // Title and qualifier are one run of text on their own row; the "computed"
+    // badge is a sibling below, so it never squeezes the title into a break
+    // mid-parenthetical and reads the same in every field.
     expect(label.textContent).toBe('Payoff month (of 360)');
     expect(label.querySelector('span.block')).toBeNull();
-    expect(row.className).toContain('flex-wrap');
-    expect(row.textContent).toContain('computed');
+    expect(row.textContent).toBe('Payoff month (of 360)');
+
+    const field = row.parentElement!;
+    expect(field.textContent).toContain('computed');
+    expect(field.className).toContain('flex-col');
 
     expect(input).toHaveAccessibleName('Payoff month (of 360)');
   });
@@ -1487,7 +1492,8 @@ describe('expected annual rent increase', () => {
     Number(screen.getByLabelText(label).getAttribute('value')!.replace(/,/g, ''));
 
   const breakEven = () =>
-    screen.getByText('Break-even (Annuity)').nextElementSibling!.textContent!;
+    screen.getByText('Break-even (Annuity)').parentElement!.lastElementChild!
+      .textContent!;
 
   it('sits in the rent-vs-buy card and starts at zero', () => {
     open(REPORTED);
@@ -1522,7 +1528,8 @@ describe('expected annual rent increase', () => {
 
     expect(breakEven()).toBe('Month 79 (year 7)');
     expect(
-      screen.getByText('Break-even (Linear)').nextElementSibling!.textContent,
+      screen.getByText('Break-even (Linear)').parentElement!.lastElementChild!
+        .textContent,
     ).not.toBe('Month 102 (year 9)');
   });
 
@@ -1794,5 +1801,118 @@ describe('extra repayments card', () => {
     expect(
       Number(screen.getAllByLabelText(/^Payoff month/)[0].getAttribute('value')),
     ).toBe(payoff);
+  });
+});
+
+describe('field alignment', () => {
+  it('puts the computed badge on its own line, always', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
+
+    // "Months saved" fits beside a badge and "Payoff month (of 360)" does not.
+    // Both must read the same way regardless.
+    // Looked up via the input, because "Payoff month (of 360)" is split across
+    // a text node and a span and so has no single matching text element.
+    [/^Months saved$/, /^Payoff month/].forEach((name) => {
+      const input = screen.getAllByLabelText(name)[0];
+      const row = document.querySelector(`label[for="${input.id}"]`)!.parentElement!;
+
+      // The badge is a sibling of the label row, never inside it.
+      expect(row.textContent).not.toContain('computed');
+      expect(row.parentElement!.textContent).toContain('computed');
+    });
+  });
+
+  it('bottom-aligns every value, so labels of different heights still line up', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
+
+    // Two fields in the same grid row whose labels differ in height:
+    // "Interest saved (gross)" is one line, "Total interest with overpayment
+    // (gross)" wraps to two.
+    ['Interest saved (gross)', 'Total interest with overpayment (gross)'].forEach(
+      (name) => {
+        const input = screen.getAllByLabelText(name)[0];
+        const valueBox = input.closest('div')!;
+        const field = valueBox.parentElement!;
+
+        expect(valueBox.className).toContain('mt-auto');
+        expect(field.className).toContain('h-full');
+        expect(field.className).toContain('flex-col');
+      },
+    );
+  });
+
+  it('aligns the break-even values with the rest of the card', () => {
+    render(<App />);
+
+    const label = screen.getByText('Break-even (Annuity)');
+    const field = label.parentElement!;
+
+    expect(field.className).toContain('h-full');
+    expect(field.className).toContain('flex-col');
+    expect(field.lastElementChild!.className).toContain('mt-auto');
+    // Badge on its own line here too.
+    expect(label.textContent).toBe('Break-even (Annuity)');
+    expect(field.textContent).toContain('computed');
+  });
+});
+
+describe('section tabs and rate links', () => {
+  it('orders the sections mortgage, costs, extra repayments, interest', () => {
+    render(<App />);
+
+    const tabs = within(screen.getByRole('tablist', { name: 'Mortgage sections' }))
+      .getAllByRole('tab')
+      .map((tab) => tab.textContent);
+
+    expect(tabs).toEqual([
+      'Mortgage',
+      'Purchase Costs',
+      'Extra Repayments',
+      'Interest',
+    ]);
+  });
+
+  it('keeps arrow-key navigation in step with the new order', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    screen.getByRole('tab', { name: 'Mortgage' }).focus();
+    await user.keyboard('{ArrowRight}{ArrowRight}');
+
+    expect(screen.getByRole('tab', { name: 'Extra Repayments' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  it('lists the lenders, and no comparison site', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Interest' }));
+
+    expect(screen.getByRole('link', { name: 'Obvion' })).toHaveAttribute(
+      'href',
+      'https://obvion.nl/hypotheekrente/actueel/',
+    );
+    expect(screen.queryByRole('link', { name: 'Compare mortgage rates' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /ikbenfrits/i })).toBeNull();
+
+    ['ING', 'Rabobank', 'ABN-AMRO', 'Obvion'].forEach((lender) =>
+      expect(screen.getByRole('link', { name: lender })).toBeInTheDocument(),
+    );
+  });
+
+  it('opens rate links safely in a new tab', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('tab', { name: 'Interest' }));
+
+    const link = screen.getByRole('link', { name: 'Obvion' });
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
   });
 });

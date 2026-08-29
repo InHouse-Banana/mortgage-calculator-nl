@@ -91,7 +91,6 @@ function RateCell(props: { value: string; onSelect?: (rate: number) => void }) {
 }
 
 const links = [
-  { label: 'Compare mortgage rates', href: 'https://www.ikbenfrits.nl/' },
   {
     label: 'ING',
     href: 'https://www.ing.nl/particulier/hypotheken/actuele-hypotheekrente/index.html',
@@ -103,6 +102,10 @@ const links = [
   {
     label: 'ABN-AMRO',
     href: 'https://www.abnamro.nl/nl/prive/hypotheken/actuele-hypotheekrente/index.html',
+  },
+  {
+    label: 'Obvion',
+    href: 'https://obvion.nl/hypotheekrente/actueel/',
   },
 ];
 
