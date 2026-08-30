@@ -268,6 +268,7 @@ describe('purchase costs', () => {
 
   it('can switch off every cost, including the derived ones', async () => {
     const user = userEvent.setup();
+    window.history.replaceState(null, '', '?price=350000');
     render(<App />);
 
     expect(purchaseCost()).toBeGreaterThan(0);
@@ -315,6 +316,8 @@ describe('purchase costs', () => {
 
   it('round-trips switched-off costs and edited amounts through the URL', async () => {
     const user = userEvent.setup();
+    // Below MAX_NHG, so the NHG switch is live rather than inert.
+    window.history.replaceState(null, '', '?price=350000');
     render(<App />);
     await goToCosts();
 
@@ -527,6 +530,7 @@ describe('master purchase-costs toggle', () => {
 
   it('turns itself off when the last individual cost is switched off', async () => {
     const user = userEvent.setup();
+    window.history.replaceState(null, '', '?price=350000');
     render(<App />);
 
     await goToCosts();
@@ -544,7 +548,7 @@ describe('master purchase-costs toggle', () => {
     window.history.replaceState(
       null,
       '',
-      '?costsOff=transferTax,bankGuarantee,nhg,notary,valuation,' +
+      '?price=350000&costsOff=transferTax,bankGuarantee,nhg,notary,valuation,' +
         'financialAdvisor,realStateAgent,structuralSurvey,otherCosts',
     );
     const user = userEvent.setup();
@@ -603,7 +607,7 @@ describe('euro amounts are shown to the nearest euro', () => {
     render(<App />);
 
     // Rates would be useless rounded to whole numbers.
-    expect(displayed('Interest')).toBe('4.62');
+    expect(displayed('Interest')).toBe('3.96');
     expect(displayed('Interest deduction')).toBe('36.93');
     expect(displayed('Loan / Price rate (%)')).toMatch(/^\d+\.\d+$/);
     // Counts are already whole.
@@ -831,9 +835,9 @@ describe('links and the effective rate', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    // Nominal 4.62% compounds monthly to 4.719095%.
-    expect(screen.getByLabelText('Interest')).toHaveValue('4.62');
-    expect(screen.getByLabelText('Effective annual rate')).toHaveValue('4.72');
+    // Nominal 3.96% compounds monthly to 4.032454%.
+    expect(screen.getByLabelText('Interest')).toHaveValue('3.96');
+    expect(screen.getByLabelText('Effective annual rate')).toHaveValue('4.03');
 
     const interest = screen.getByLabelText('Interest');
     await user.clear(interest);
@@ -1943,8 +1947,8 @@ describe('computed tag placement', () => {
     );
 
     await user.click(screen.getByRole('tab', { name: 'Purchase Costs' }));
-    ['Transfer tax', 'Bank guarantee', 'NHG'].forEach((label) =>
-      expect(rowOf(label).textContent).toContain('computed'),
+    (['Transfer tax', 'Bank guarantee', /^NHG/] as Array<string | RegExp>).forEach(
+      (label) => expect(rowOf(label).textContent).toContain('computed'),
     );
   });
 
@@ -2006,7 +2010,11 @@ describe('default scenario', () => {
     expect(value('House price')).toBeGreaterThan(MAX_NHG);
 
     await user.click(screen.getByRole('tab', { name: 'Purchase Costs' }));
-    expect(value('NHG')).toBe(0);
+    expect(
+      Number(
+        screen.getByLabelText(/^NHG/).getAttribute('value')!.replace(/,/g, ''),
+      ),
+    ).toBe(0);
   });
 
   it('still borrows under the value of the house', () => {
@@ -2033,5 +2041,64 @@ describe('default scenario', () => {
     expect(month).toBe(1);
     expect(balance).toBe(value('Required loan'));
     expect(capital + interest).toBe(gross);
+  });
+});
+
+describe('NHG above the price cap', () => {
+  async function toCosts() {
+    await userEvent.setup().click(
+      screen.getByRole('tab', { name: 'Purchase Costs' }),
+    );
+  }
+
+  it('makes the switch inert rather than leaving it clickable', async () => {
+    // Default price is above MAX_NHG. Toggling NHG there changed nothing at
+    // all, so the control lied about having an effect.
+    render(<App />);
+    await toCosts();
+
+    expect(screen.getByLabelText('Include NHG in total')).toBeDisabled();
+    expect(screen.getByLabelText(/^NHG/)).toHaveValue('0');
+  });
+
+  it('says why, rather than just showing zero', async () => {
+    render(<App />);
+    await toCosts();
+
+    expect(screen.getByLabelText(/^NHG/)).toHaveAccessibleName(
+      'NHG (not available above €405,000)',
+    );
+  });
+
+  it('leaves the switch usable below the cap', async () => {
+    window.history.replaceState(null, '', '?price=350000');
+    render(<App />);
+    await toCosts();
+
+    const box = screen.getByLabelText('Include NHG in total');
+    expect(box).toBeEnabled();
+    expect(box).toBeChecked();
+    // No explanatory note when it does apply.
+    expect(screen.getByLabelText('NHG')).toHaveAccessibleName('NHG');
+    expect(
+      Number(screen.getByLabelText('NHG').getAttribute('value')!.replace(/,/g, '')),
+    ).toBeGreaterThan(0);
+  });
+
+  it('becomes inert as soon as the price crosses the cap', async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, '', '?price=400000');
+    render(<App />);
+    await toCosts();
+    expect(screen.getByLabelText('Include NHG in total')).toBeEnabled();
+
+    await user.click(screen.getByRole('tab', { name: 'Mortgage' }));
+    const price = screen.getByLabelText('House price');
+    await user.clear(price);
+    await user.type(price, '420000');
+    await user.tab();
+
+    await toCosts();
+    expect(screen.getByLabelText('Include NHG in total')).toBeDisabled();
   });
 });

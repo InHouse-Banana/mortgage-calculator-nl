@@ -1,7 +1,7 @@
 import React from 'react';
 import { InputField } from './InputField';
 import { Card } from './Card';
-import { nhgFee } from '../common/constants';
+import { MAX_NHG, isNhgEligible, nhgFee } from '../common/constants';
 import { BANK_GUARANTEE_RATE, TRANSFER_TAX_RATE } from '../common/Formulas';
 import { glossary } from '../common/glossary';
 import { ToggleableCost } from '../App';
@@ -31,6 +31,9 @@ export function Costs(props: Props) {
   const bankGuarantee = BANK_GUARANTEE_RATE * props.price;
   const transferTax = TRANSFER_TAX_RATE * props.price;
   const nhg = nhgFee(props.price, props.loan);
+  // Above the cap there is no guarantee to include or exclude, so the switch
+  // would sit there doing nothing at all.
+  const nhgAvailable = isNhgEligible(props.price);
 
   function toggle(field: ToggleableCost) {
     return {
@@ -85,7 +88,20 @@ export function Costs(props: Props) {
         toggle={toggle('financialAdvisor')}
         onChange={(value) => props.onChange('financialAdvisor', parseFloat(value))}
       />
-      <InputField title="NHG" prepend="€" disabled value={nhg} toggle={toggle('nhg')} onChange={() => {}} info={glossary.nhg} />
+      <InputField
+        title="NHG"
+        titleNote={
+          nhgAvailable
+            ? undefined
+            : `(not available above €${MAX_NHG.toLocaleString('en-GB')})`
+        }
+        prepend="€"
+        disabled
+        value={nhg}
+        toggle={{ ...toggle('nhg'), disabled: !nhgAvailable }}
+        onChange={() => {}}
+        info={glossary.nhg}
+      />
       <InputField
         title="Structural survey"
         prepend="€"

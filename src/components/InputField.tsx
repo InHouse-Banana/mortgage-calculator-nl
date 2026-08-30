@@ -41,6 +41,8 @@ type InputFieldProps = {
     indeterminate?: boolean;
     /** Overrides the default `Include {title} in total` accessible name. */
     label?: string;
+    /** For a cost that cannot apply at all, so the control is visibly inert. */
+    disabled?: boolean;
   };
 };
 
@@ -116,7 +118,8 @@ export function InputField({
             checked={toggle.checked}
             onChange={(e) => toggle.onChange(e.target.checked)}
             aria-label={toggle.label ?? `Include ${title} in total`}
-            className="h-3.5 w-3.5 rounded border-brand-300 text-brand-400 focus:ring-2 focus:ring-brand-200"
+            disabled={toggle.disabled}
+            className="h-3.5 w-3.5 rounded border-brand-300 text-brand-400 focus:ring-2 focus:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-40"
           />
         )}
         {/* With a valueLabel the visible text names the toggle, not the
