@@ -40,6 +40,7 @@ type FieldSpec = {
   /** Second line of the label, for a parenthetical that would otherwise wrap. */
   titleNote?: string;
   valueLabel?: string;
+  badge?: 'inline' | 'below';
   prepend?: string;
   append?: string;
   value: number;
@@ -67,6 +68,7 @@ function Field({
       title={spec.title}
       titleNote={spec.titleNote}
       valueLabel={spec.valueLabel}
+      badge={spec.badge}
       prepend={spec.prepend}
       append={spec.append}
       value={spec.value}
@@ -90,9 +92,9 @@ function BreakEvenField({
     <div className="flex h-full flex-col">
       <span className="flex items-center gap-1.5 text-base text-brand-400">
         {title}
-      </span>
-      <span className="mt-1 self-start rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">
-        computed
+        <span className="shrink-0 rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">
+          computed
+        </span>
       </span>
       <div className="mt-auto pt-1 rounded-md border border-transparent bg-brand-50 px-3 py-2 text-sm text-brand-500">
         {month === null
@@ -115,27 +117,27 @@ function MortgageTypeSection({
   return (
     <CardSection title={title} info={info}>
       <Field
-        spec={{ title: 'Total repaid (gross)', prepend: '€', value: totals.totalPaidGross, field: null, disabled: true }}
+        spec={{ title: 'Total repaid (gross)', prepend: '€', value: totals.totalPaidGross, field: null, disabled: true, badge: 'below' }}
         onChange={() => {}}
       />
       <Field
-        spec={{ title: 'Total repaid (net)', prepend: '€', value: totals.totalPaidNet, field: null, disabled: true }}
+        spec={{ title: 'Total repaid (net)', prepend: '€', value: totals.totalPaidNet, field: null, disabled: true, badge: 'below' }}
         onChange={() => {}}
       />
       <Field
-        spec={{ title: 'Total interest (gross)', prepend: '€', value: totals.totalInterestGross, field: null, disabled: true }}
+        spec={{ title: 'Total interest (gross)', prepend: '€', value: totals.totalInterestGross, field: null, disabled: true, badge: 'below' }}
         onChange={() => {}}
       />
       <Field
-        spec={{ title: 'Total interest (net)', prepend: '€', value: totals.totalInterestNet, field: null, disabled: true }}
+        spec={{ title: 'Total interest (net)', prepend: '€', value: totals.totalInterestNet, field: null, disabled: true, badge: 'below' }}
         onChange={() => {}}
       />
       <Field
-        spec={{ title: 'Total invested (gross)', prepend: '€', value: totals.totalInvestedGross, field: null, disabled: true }}
+        spec={{ title: 'Total invested (gross)', prepend: '€', value: totals.totalInvestedGross, field: null, disabled: true, badge: 'below' }}
         onChange={() => {}}
       />
       <Field
-        spec={{ title: 'Total invested (net)', prepend: '€', value: totals.totalInvestedNet, field: null, disabled: true }}
+        spec={{ title: 'Total invested (net)', prepend: '€', value: totals.totalInvestedNet, field: null, disabled: true, badge: 'below' }}
         onChange={() => {}}
       />
     </CardSection>

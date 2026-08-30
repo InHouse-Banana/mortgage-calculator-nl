@@ -115,12 +115,14 @@ function ResultCard({
       <InputField
         title="Payoff month"
         titleNote={`(of ${termMonths})`}
+        badge="below"
         value={withOverpayment.payoffMonth}
         disabled
         onChange={() => {}}
       />
       <InputField
         title="Months saved"
+        badge="below"
         value={monthsSaved}
         disabled
         onChange={() => {}}
@@ -128,6 +130,7 @@ function ResultCard({
       <InputField
         title="Interest saved"
         titleNote="(gross)"
+        badge="below"
         prepend="€"
         value={interestSaved}
         disabled
@@ -136,6 +139,7 @@ function ResultCard({
       <InputField
         title="Total interest with overpayment"
         titleNote="(gross)"
+        badge="below"
         prepend="€"
         value={withOverpayment.totalInterestGross}
         disabled

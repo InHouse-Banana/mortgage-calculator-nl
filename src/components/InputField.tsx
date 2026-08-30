@@ -23,6 +23,12 @@ type InputFieldProps = {
    */
   valueLabel?: string;
   /**
+   * Where the "computed" tag sits. Inline reads better and is the default;
+   * narrow cards where the label already wraps set it below, so the tag does
+   * not sometimes fit and sometimes not within the same card.
+   */
+  badge?: 'inline' | 'below';
+  /**
    * Digits shown after the decimal point. Defaults to 0 for money (cents are
    * noise on figures this size) and 2 otherwise, so rates keep their precision.
    * Display only — state and the calculation engine keep full precision.
@@ -38,6 +44,19 @@ type InputFieldProps = {
   };
 };
 
+function ComputedTag({ className = '' }: { className?: string }) {
+  return (
+    <span
+      className={
+        'rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase ' +
+        className
+      }
+    >
+      computed
+    </span>
+  );
+}
+
 export function InputField({
   title,
   prepend,
@@ -48,6 +67,7 @@ export function InputField({
   info,
   titleNote,
   valueLabel,
+  badge = 'inline',
   decimals,
   toggle,
 }: InputFieldProps) {
@@ -114,14 +134,9 @@ export function InputField({
           ) : null,
         )}
         {info && <InfoTooltip text={info} />}
+        {disabled && badge === 'inline' && <ComputedTag className="shrink-0" />}
       </div>
-      {/* Always its own line. Inline, it reads differently depending on whether
-          the title happens to leave room beside it. */}
-      {disabled && (
-        <span className="mt-1 self-start rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand-400 uppercase">
-          computed
-        </span>
-      )}
+      {disabled && badge === 'below' && <ComputedTag className="mt-1 self-start" />}
       {/* mt-auto: the cell is stretched to the row height, so pushing the
           value to the bottom lines it up with every other value in the row,
           however many lines the labels above them took. */}

@@ -1848,15 +1848,16 @@ describe('field alignment', () => {
   it('aligns the break-even values with the rest of the card', () => {
     render(<App />);
 
-    const label = screen.getByText('Break-even (Annuity)');
-    const field = label.parentElement!;
+    // getByText matches on direct text children, so this is the label row
+    // itself even though the tag span now sits inside it.
+    const row = screen.getByText('Break-even (Annuity)');
+    const field = row.parentElement!;
 
     expect(field.className).toContain('h-full');
     expect(field.className).toContain('flex-col');
     expect(field.lastElementChild!.className).toContain('mt-auto');
-    // Badge on its own line here too.
-    expect(label.textContent).toBe('Break-even (Annuity)');
-    expect(field.textContent).toContain('computed');
+    // Rent vs. buy is a wide card, so the tag sits beside the label.
+    expect(row.textContent).toBe('Break-even (Annuity)computed');
   });
 });
 
@@ -1914,5 +1915,67 @@ describe('section tabs and rate links', () => {
     const link = screen.getByRole('link', { name: 'Obvion' });
     expect(link).toHaveAttribute('target', '_blank');
     expect(link.getAttribute('rel')).toContain('noopener');
+  });
+});
+
+describe('computed tag placement', () => {
+  // Structural, not via label[for]: fields that use valueLabel render their
+  // visible text as a span, so there is no label element to query.
+  const fieldOf = (label: string | RegExp) =>
+    screen.getAllByLabelText(label)[0].closest('div')!.parentElement!;
+  const rowOf = (label: string | RegExp) => fieldOf(label).firstElementChild!;
+
+  it('sits beside the label in the wide cards, where it fits', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Your details, Purchase cost and Rent vs. buy are full-width cards.
+    ['Effective annual rate', 'Required loan', 'Total invested on rent'].forEach(
+      (label) => expect(rowOf(label).textContent).toContain('computed'),
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Purchase Costs' }));
+    ['Transfer tax', 'Bank guarantee', 'NHG'].forEach((label) =>
+      expect(rowOf(label).textContent).toContain('computed'),
+    );
+  });
+
+  it('drops below the label in the narrow two-column cards', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Annuity vs. Linear: two columns inside a half-width card.
+    expect(rowOf('Total interest (gross)').textContent).not.toContain('computed');
+    expect(fieldOf('Total interest (gross)').textContent).toContain('computed');
+
+    await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
+    expect(rowOf(/^Months saved$/).textContent).not.toContain('computed');
+    expect(fieldOf(/^Months saved$/).textContent).toContain('computed');
+  });
+
+  it('is consistent within each card, never mixed', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Every computed field in the Purchase cost card puts the tag inline.
+    [
+      'Total purchase cost',
+      'Remaining = Savings - Cost',
+      'Required loan',
+      'Loan / Price rate (%)',
+    ].forEach((label) =>
+      expect(rowOf(label).textContent, label).toContain('computed'),
+    );
+
+    // Every one in an Extra Repayments result card puts it below.
+    await user.click(screen.getByRole('tab', { name: 'Extra Repayments' }));
+    [
+      /^Payoff month/,
+      /^Months saved$/,
+      'Interest saved (gross)',
+      'Total interest with overpayment (gross)',
+    ].forEach((label) =>
+      expect(rowOf(label).textContent, String(label)).not.toContain('computed'),
+    );
   });
 });
