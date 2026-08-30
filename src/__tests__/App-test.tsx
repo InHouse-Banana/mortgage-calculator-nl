@@ -2,6 +2,7 @@ import React from 'react';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App, { TOGGLEABLE_COSTS } from '../App';
+import { MAX_NHG } from '../common/constants';
 
 // The amortization table has a header row plus one row per month.
 function scheduleMonths() {
@@ -288,12 +289,19 @@ describe('purchase costs', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Mortgage' }));
     expect(purchaseCost()).toBe(0);
-    // With no costs, the loan is exactly price minus savings.
-    expect(requiredLoan()).toBe(310000 - 40000);
+
+    // With no costs, the loan is exactly price minus savings — read from the
+    // fields rather than hardcoded, so changing a default cannot invalidate it.
+    const value = (label: string) =>
+      Number(screen.getByLabelText(label).getAttribute('value')!.replace(/,/g, ''));
+    expect(requiredLoan()).toBe(value('House price') - value('Own savings'));
   });
 
   it('drops NHG from the loan when switched off', async () => {
     const user = userEvent.setup();
+    // Below MAX_NHG (405,000); the default price sits above it, where NHG
+    // never applies and there would be nothing to switch off.
+    window.history.replaceState(null, '', '?price=350000&savings=40000');
     render(<App />);
 
     const withNhg = requiredLoan();
@@ -1977,5 +1985,53 @@ describe('computed tag placement', () => {
     ].forEach((label) =>
       expect(rowOf(label).textContent, String(label)).not.toContain('computed'),
     );
+  });
+});
+
+describe('default scenario', () => {
+  const value = (label: string) =>
+    Number(screen.getByLabelText(label).getAttribute('value')!.replace(/,/g, ''));
+
+  it('opens on a 470,000 purchase', () => {
+    render(<App />);
+    expect(value('House price')).toBe(470000);
+  });
+
+  it('sits above the NHG cap, so no guarantee fee is charged by default', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // MAX_NHG is 405,000. Worth pinning: the default used to be below it, and
+    // the loan was grossed up by the NHG fee as a result.
+    expect(value('House price')).toBeGreaterThan(MAX_NHG);
+
+    await user.click(screen.getByRole('tab', { name: 'Purchase Costs' }));
+    expect(value('NHG')).toBe(0);
+  });
+
+  it('still borrows under the value of the house', () => {
+    render(<App />);
+
+    // Costs are financed in, so the loan exceeds price minus savings — but a
+    // lender will not go past 100% of value.
+    const loan = value('Required loan');
+    expect(loan).toBeGreaterThan(value('House price') - value('Own savings'));
+    expect(value('Loan / Price rate (%)')).toBeLessThan(100);
+  });
+
+  it('produces a coherent schedule at the new default', () => {
+    render(<App />);
+
+    const table = screen.getByRole('table');
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(361); // header + 360 months
+
+    const first = Array.from(rows[1].querySelectorAll('td')).map((c) =>
+      Number(c.textContent!.replace(/,/g, '')),
+    );
+    const [month, balance, gross, capital, interest] = first;
+    expect(month).toBe(1);
+    expect(balance).toBe(value('Required loan'));
+    expect(capital + interest).toBe(gross);
   });
 });

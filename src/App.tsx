@@ -177,7 +177,7 @@ const App = () => {
   const [state, setState] = useState<AppState>(() => {
     const params = new URLSearchParams(window.location.search);
     return {
-      price: readNumberParam(params, 'price', 310000),
+      price: readNumberParam(params, 'price', 470000),
       interest: readNumberParam(params, 'interest', 4.62),
       deduction: readNumberParam(params, 'deduction', 36.93),
       savings: readNumberParam(params, 'savings', 40000),
