@@ -76,6 +76,42 @@ it('round-trips the term through the URL', async () => {
   expect(new URLSearchParams(window.location.search).get('termYears')).toBe('25');
 });
 
+describe('mortgage structure tab in the URL', () => {
+  const structure = () => new URLSearchParams(window.location.search).get('structure');
+
+  it('omits structure from the URL on the default Annuity tab', () => {
+    render(<App />);
+    expect(structure()).toBeNull();
+    expect(screen.getByRole('tab', { name: 'Annuity' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('records the selected tab and drops it again when back on Annuity', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('tab', { name: 'Linear' }));
+    expect(structure()).toBe('linear');
+
+    await user.click(screen.getByRole('tab', { name: 'Graph' }));
+    expect(structure()).toBe('graph');
+
+    await user.click(screen.getByRole('tab', { name: 'Annuity' }));
+    expect(structure()).toBeNull();
+  });
+
+  it('opens the tab named in the URL on load', () => {
+    window.history.replaceState(null, '', '?structure=linear');
+    render(<App />);
+    expect(screen.getByRole('tab', { name: 'Linear' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('falls back to Annuity for an unknown structure value', () => {
+    window.history.replaceState(null, '', '?structure=bogus');
+    render(<App />);
+    expect(screen.getByRole('tab', { name: 'Annuity' })).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
 it('reads the term from the URL on load', () => {
   window.history.replaceState(null, '', '?termYears=27');
   render(<App />);

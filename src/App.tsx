@@ -112,6 +112,17 @@ const URL_SYNCED_FIELDS = [
 // included) adds nothing to the link.
 const COSTS_OFF_PARAM = 'costsOff';
 
+// Which Mortgage Structure tab is open. Like costsOff it is omitted when it is
+// the default, so existing links and the common case stay unchanged.
+const STRUCTURE_PARAM = 'structure';
+const TABLE_TABS: readonly TableTabs[] = ['annuity', 'linear', 'graph'];
+const DEFAULT_TABLE_TAB: TableTabs = 'annuity';
+
+function readTableTab(params: URLSearchParams): TableTabs {
+  const raw = params.get(STRUCTURE_PARAM);
+  return TABLE_TABS.find((value) => value === raw) ?? DEFAULT_TABLE_TAB;
+}
+
 function readCostsEnabled(params: URLSearchParams): Record<ToggleableCost, boolean> {
   const off = new Set(
     (params.get(COSTS_OFF_PARAM) ?? '').split(',').filter(Boolean),
@@ -223,7 +234,9 @@ const App = () => {
 
   const termMonths = state.termYears * MONTHS_PER_YEAR;
 
-  const [tab, setTab] = useState<TableTabs>('annuity');
+  const [tab, setTab] = useState<TableTabs>(() =>
+    readTableTab(new URLSearchParams(window.location.search)),
+  );
   const [infoTab, setInfoTab] = useState<InfoTabs>('mortgage');
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -419,12 +432,13 @@ const App = () => {
     );
     const off = TOGGLEABLE_COSTS.filter((cost) => !state.costEnabled[cost]);
     if (off.length > 0) params.set(COSTS_OFF_PARAM, off.join(','));
+    if (tab !== DEFAULT_TABLE_TAB) params.set(STRUCTURE_PARAM, tab);
     const search = '?' + params.toString();
     // replaceState (not pushState) so editing fields doesn't spam browser history.
     if (window.location.search !== search) {
       window.history.replaceState(null, '', search);
     }
-  }, [state]);
+  }, [state, tab]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
